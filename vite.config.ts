@@ -13,6 +13,7 @@ export default defineConfig({
       injectRegister: false,
       workbox: {
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        importScripts: ['push-sw.js'],
       },
       includeAssets: ['icone.svg', 'apple-touch-icon.png'],
       manifest: {

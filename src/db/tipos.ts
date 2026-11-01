@@ -176,6 +176,7 @@ export interface AjustesConta extends Base {
   fonteCotacao: 'brapi' | 'alphavantage'
   chaveCotacao: string
   taxaRotativoMensal: number
+  notificacoes?: { fatura: boolean; limite: boolean; semanal: boolean }
 }
 
 export interface CasaMembro extends Base {

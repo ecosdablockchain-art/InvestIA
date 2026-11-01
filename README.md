@@ -54,5 +54,5 @@ src/
 6. ✅ Cartões, faturas, parcelados, dívidas e simulador
 7. ✅ Investimentos, cotações, reserva, metas, patrimônio
 8. Casa compartilhada: fora do plano
-9. Notificações
+9. ✅ Notificações (Web Push via Supabase; ver supabase/NOTIFICACOES.md)
 10. Consultor com IA e camada de jogo

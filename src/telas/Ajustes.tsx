@@ -13,6 +13,7 @@ import { sincronizarAgora, temPendencias, useEstadoSinc } from '../nuvem/estado'
 import { useSessao } from '../conta/sessao'
 import { procurarAtualizacao } from '../ui/Atualizacao'
 import { salvarAjustesConta, useAjustesConta } from '../db/ajustesConta'
+import { agendarNotificacoes, ativarNesteAparelho, desativarNesteAparelho, enviarTeste, inscritoAqui, suporte as suporteNotificacoes } from '../servicos/notificacoes'
 
 const mostrarAvisoChave = () => { void import('../ui/Aviso').then((m) => m.mostrarAviso('Chave salva na sua conta')) }
 
@@ -50,6 +51,67 @@ function SecaoConta() {
           onClick={() => void sincronizarAgora()}>Sincronizar</button>
       </Linha>
       <Linha icone="🚪" titulo="Sair" onClick={() => void sairDaConta()} />
+    </Grupo>
+  )
+}
+
+function SecaoNotificacoes() {
+  const ajustes = useAjustesConta()
+  const [suporteAqui] = useState(() => (typeof window !== 'undefined' ? suporteNotificacoes() : 'navegador-sem-suporte'))
+  const [inscrito, setInscrito] = useState<boolean | null>(null)
+  const [ocupado, setOcupado] = useState(false)
+  const [msg, setMsg] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
+  useEffect(() => { void inscritoAqui().then(setInscrito) }, [])
+
+  async function alternar(ligar: boolean) {
+    setOcupado(true); setMsg(null)
+    try {
+      if (ligar) { await ativarNesteAparelho(); setMsg({ tipo: 'ok', texto: 'Pronto! Este aparelho vai receber as notificações.' }) }
+      else { await desativarNesteAparelho(); setMsg({ tipo: 'ok', texto: 'Este aparelho não vai mais receber notificações.' }) }
+      setInscrito(await inscritoAqui())
+    } catch (e) { setMsg({ tipo: 'erro', texto: e instanceof Error ? e.message : 'Não deu certo.' }) }
+    finally { setOcupado(false) }
+  }
+  async function testar() {
+    setOcupado(true); setMsg(null)
+    try {
+      const r = await enviarTeste()
+      setMsg(r.aparelhos === 0 ? { tipo: 'erro', texto: 'Nenhum aparelho ativado ainda.' } : { tipo: 'ok', texto: `Enviada para ${r.ok} de ${r.aparelhos} ${r.aparelhos === 1 ? 'aparelho' : 'aparelhos'}. Deve chegar em alguns segundos.` })
+    } catch (e) { setMsg({ tipo: 'erro', texto: e instanceof Error ? e.message : 'Não deu certo.' }) }
+    finally { setOcupado(false) }
+  }
+  async function mudarTipo(tipo: 'fatura' | 'limite' | 'semanal', v: boolean) {
+    if (!ajustes) return
+    await salvarAjustesConta({ notificacoes: { ...ajustes.notificacoes, [tipo]: v } })
+    void agendarNotificacoes(true)
+  }
+
+  return (
+    <Grupo titulo="Notificações" rodape="Os tipos escolhidos valem para todos os aparelhos ativados. As notificações chegam mesmo com o app fechado.">
+      {suporteAqui === 'instalar-no-iphone' ? (
+        <Linha icone="📱" titulo="No iPhone, instale o app na tela de início para receber notificações" href="#/ajustes/instalar" />
+      ) : suporteAqui === 'navegador-sem-suporte' ? (
+        <Linha icone="🚫" titulo="Este navegador não recebe notificações de sites" />
+      ) : (
+        <Linha icone="🔔" titulo="Receber neste aparelho">
+          <Interruptor rotulo="Receber notificações neste aparelho" ligado={!!inscrito} desabilitado={ocupado || inscrito === null} onMudar={(v) => void alternar(v)} />
+        </Linha>
+      )}
+      {ajustes && (
+        <>
+          <Linha icone="💳" titulo="Fatura vencendo (3 dias antes e no dia)">
+            <Interruptor rotulo="Avisar fatura vencendo" ligado={ajustes.notificacoes.fatura} onMudar={(v) => void mudarTipo('fatura', v)} />
+          </Linha>
+          <Linha icone="🎯" titulo="Categoria passou do limite">
+            <Interruptor rotulo="Avisar limite estourado" ligado={ajustes.notificacoes.limite} onMudar={(v) => void mudarTipo('limite', v)} />
+          </Linha>
+          <Linha icone="🗓️" titulo="Lembrete semanal (domingo, 19h)">
+            <Interruptor rotulo="Lembrete semanal" ligado={ajustes.notificacoes.semanal} onMudar={(v) => void mudarTipo('semanal', v)} />
+          </Linha>
+        </>
+      )}
+      {inscrito && <Linha icone="🧪" titulo={ocupado ? 'Enviando…' : 'Enviar notificação de teste'} onClick={() => void testar()} />}
+      {msg && <p role="status" className={`px-4 py-3 text-sm ${msg.tipo === 'ok' ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-600 dark:text-red-400'}`}>{msg.texto}</p>}
     </Grupo>
   )
 }
@@ -186,6 +248,8 @@ export function Ajustes() {
       )}
 
       <SecaoConta />
+
+      <SecaoNotificacoes />
 
       <Grupo titulo="Segurança" rodape={temBiometria === false
         ? 'Este navegador não oferece desbloqueio por biometria para sites.'

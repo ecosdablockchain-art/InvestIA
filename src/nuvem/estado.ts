@@ -28,6 +28,8 @@ export async function sincronizarAgora(): Promise<boolean> {
   try {
     await sincronizarUmaVez(atual.banco, atual.servidor)
     definir({ situacao: 'ok', ultima: Date.now(), erro: null })
+    // agenda das notificações a partir dos dados atualizados (não bloqueia)
+    void import('../servicos/notificacoes').then((m) => m.agendarNotificacoes()).catch(() => {})
     return true
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
