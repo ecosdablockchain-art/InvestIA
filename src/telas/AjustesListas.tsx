@@ -89,7 +89,7 @@ export function AjustesCategorias() {
 
   return (
     <Tela titulo="Categorias" voltar={{ rotulo: 'Ajustes', href: '#/ajustes' }}>
-      <Grupo rodape="Os limites mensais por categoria chegam na fase 2, junto com o orçamento do mês. Categorias arquivadas somem das listas, mas os lançamentos antigos continuam com elas.">
+      <Grupo rodape="Os limites mensais ficam na aba Mês › Limites. Categorias arquivadas somem das listas, mas os lançamentos antigos continuam com elas.">
         {categorias?.map((c) => (
           <Linha key={c.id} icone={c.icone} titulo={c.arquivada ? `${c.nome} (arquivada)` : c.nome}
             detalhe={TIPOS.find((t) => t.valor === c.tipo)?.rotulo}>

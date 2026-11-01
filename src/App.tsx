@@ -5,6 +5,8 @@ import { TelaBloqueio } from './seguranca/TelaBloqueio'
 import { TabBar } from './ui/TabBar'
 import { Painel } from './telas/Painel'
 import { EmBreve } from './telas/EmBreve'
+import { Mes } from './telas/mes/Mes'
+import { Aviso } from './ui/Aviso'
 import { Ajustes, Instalar } from './telas/Ajustes'
 import { AjustesCategorias, AjustesContextos } from './telas/AjustesListas'
 
@@ -56,7 +58,8 @@ export function App() {
 
   let tela
   switch (rota) {
-    case 'mes': case 'importar': case 'credito': case 'patrimonio': tela = <EmBreve aba={rota} />; break
+    case 'mes': tela = <Mes />; break
+    case 'importar': case 'credito': case 'patrimonio': tela = <EmBreve aba={rota} />; break
     case 'ajustes': tela = <Ajustes />; break
     case 'ajustes/contextos': tela = <AjustesContextos />; break
     case 'ajustes/categorias': tela = <AjustesCategorias />; break
@@ -68,6 +71,7 @@ export function App() {
     <>
       <div aria-hidden={oculto} className={oculto ? 'blur-xl' : undefined}>{tela}</div>
       <TabBar ativa={aba} />
+      <Aviso />
     </>
   )
 }

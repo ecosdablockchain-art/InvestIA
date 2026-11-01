@@ -48,3 +48,36 @@ export function nivelLimite(gasto: Centavos, limite: Centavos): { nivel: NivelLi
   const nivel: NivelLimite = percentual > 100 ? 'estourado' : percentual >= 80 ? 'atencao' : 'ok'
   return { nivel, percentual }
 }
+
+/** Total gasto por categoria no mês (só gastos). Chave null = sem categoria. */
+export function gastosPorCategoria(lancamentos: LancamentoResumo[], c: Competencia, visao: Visao): Map<string | null, Centavos> {
+  const mapa = new Map<string | null, Centavos>()
+  for (const l of filtrarVisao(lancamentos, visao)) {
+    if (l.competencia !== c || l.tipo !== 'gasto') continue
+    mapa.set(l.categoriaId, (mapa.get(l.categoriaId) ?? 0) + l.valor)
+  }
+  return mapa
+}
+
+/**
+ * Sugestão de limite: média dos gastos da categoria nos 3 meses anteriores.
+ * Só conta meses em que houve algum lançamento (para não puxar a média para baixo
+ * nos primeiros meses de uso). Arredonda para cima, em reais inteiros.
+ * Retorna null se não houver histórico.
+ */
+export function sugerirLimite(lancamentos: LancamentoResumo[], categoriaId: string, c: Competencia): Centavos | null {
+  const meses = [1, 2, 3].map((n) => anterior(c, n))
+  const comDados = meses.filter((m) => lancamentos.some((l) => l.competencia === m))
+  if (comDados.length === 0) return null
+  let total = 0
+  for (const l of lancamentos) {
+    if (l.tipo === 'gasto' && l.categoriaId === categoriaId && comDados.includes(l.competencia)) total += l.valor
+  }
+  if (total === 0) return null
+  return Math.ceil(total / comDados.length / 100) * 100
+}
+
+function anterior(c: Competencia, n: number): Competencia {
+  const total = Math.floor(c / 100) * 12 + (c % 100) - 1 - n
+  return Math.floor(total / 12) * 100 + (total % 12) + 1
+}
