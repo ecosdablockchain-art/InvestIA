@@ -5,5 +5,5 @@
  */
 export const PROJETO = {
   url: 'https://ppuxdtzpjuxprriyeaar.supabase.co',
-  chavePublica: 'sb_publishable_Sdd0Ge9XaQXr3jSkJ88zRA_9YIWxkS',
+  chavePublica: 'sb_publishable_Sdd0Ge9XaQXr3jSkJ88zRA_9YIWxkSH',
 }
