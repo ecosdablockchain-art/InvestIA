@@ -38,8 +38,10 @@ alter table public.push_inscricoes enable row level security;
 alter table public.notificacoes enable row level security;
 alter table public.config_push enable row level security;
 alter table public.push_inscricoes force row level security;
-alter table public.notificacoes force row level security;
-alter table public.config_push force row level security;
+-- notificacoes e config_push sem "force": as funções abaixo (do dono das tabelas) precisam gravar e ler nelas;
+-- o app continua sem acesso direto (só leitura da própria agenda; config_push nem isso).
+alter table public.notificacoes no force row level security;
+alter table public.config_push no force row level security;
 
 drop policy if exists "dono vê inscrições" on public.push_inscricoes;
 drop policy if exists "dono cria inscrição" on public.push_inscricoes;
