@@ -4,6 +4,6 @@
  * NUNCA coloque aqui a chave "service_role"/secret.
  */
 export const PROJETO = {
-  url: '',
+  url: 'https://ppuxdtzpjuxprriyeaar.supabase.co',
   chavePublica: '',
 }
