@@ -43,6 +43,23 @@ function deslocar(d: DataISO, dias: number): DataISO {
   return new Date(Date.parse(`${d}T12:00:00Z`) + dias * 86_400_000).toISOString().slice(0, 10)
 }
 
+const SO_VALOR = new RegExp(String.raw`^(${NUM})\s*([DC])?$`, 'i')
+
+/** Em prints de app, o valor às vezes cai na linha de baixo da descrição: junta as duas. */
+export function juntarValorDaLinhaDeBaixo(texto: string): string[] {
+  const linhas = texto.split(/\r?\n/).map((l) => l.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim()).filter(Boolean)
+  const out: string[] = []
+  for (let i = 0; i < linhas.length; i++) {
+    const atual = linhas[i] as string
+    const prox = linhas[i + 1]
+    if (prox && SO_VALOR.test(prox) && !VALORES_NO_FIM.test(atual) && /[a-z]/i.test(atual)) {
+      out.push(`${atual} ${prox}`)
+      i++
+    } else out.push(atual)
+  }
+  return out
+}
+
 /**
  * Lê texto colado, de PDF ou de foto: cada linha com data no início e valor no fim.
  * Ex.: "05/11 IFOOD *RESTAURANTE 45,90" ou "05/11/2026 PIX RECEBIDO JOAO 1.200,00 C".
@@ -51,13 +68,11 @@ function deslocar(d: DataISO, dias: number): DataISO {
  * - Sem sinal, o valor é tratado como gasto, salvo palavras como "recebido" ou "estorno".
  */
 export function lerTexto(texto: string, hoje: DataISO): ResultadoLeitura {
-  interface Bruta { data: DataISO; descricao: string; abs: number; negativo: boolean; dc: 'D' | 'C' | null }
+  interface Bruta { data: DataISO; descricao: string; abs: number; negativo: boolean; dc: 'D' | 'C' | null; mais: boolean }
   const brutas: Bruta[] = []
   let ignoradas = 0
   let dataAtual: DataISO | null = null
-  for (const original of texto.split(/\r?\n/)) {
-    const l = original.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim()
-    if (!l) continue
+  for (const l of juntarValorDaLinhaDeBaixo(texto)) {
     const cabecalho = lerDataCabecalho(l, hoje)
     if (cabecalho) { dataAtual = cabecalho; continue }
 
@@ -75,18 +90,21 @@ export function lerTexto(texto: string, hoje: DataISO): ResultadoLeitura {
     const v = lerValor(bruto.replace('+', ''))
     if (v === null || v === 0) { ignoradas++; continue }
     const dc = (mValor[2]?.toUpperCase() ?? (mais ? 'C' : null)) as 'D' | 'C' | null
-    brutas.push({ data, descricao, abs: Math.abs(v), negativo: v < 0, dc })
+    brutas.push({ data, descricao, abs: Math.abs(v), negativo: v < 0, dc, mais })
   }
 
   // Fatura: a maioria vem sem sinal (compras) e o "-" marca crédito.
   // Extrato: a maioria vem com "-" (saídas) e sem sinal é entrada.
   const semSinal = brutas.filter((b) => !b.dc && !b.negativo).length
   const negativos = brutas.filter((b) => !b.dc && b.negativo).length
-  const ehFatura = semSinal >= negativos
+  // "+" explícito é coisa de app de banco: + entrada, − saída, sem sinal = saída
+  const ehApp = brutas.some((b) => b.mais)
+  const ehFatura = !ehApp && semSinal >= negativos
   const linhas: LinhaImportada[] = brutas.map((b) => {
     const pareceEntrada = /\b(recebid[oa]|credito|deposito|estorno|reembolso|salario|cashback)\b/.test(normalizar(b.descricao))
     let entrada: boolean
     if (b.dc) entrada = b.dc === 'C'
+    else if (ehApp) entrada = !b.negativo && pareceEntrada
     else if (ehFatura) entrada = b.negativo || pareceEntrada
     else entrada = !b.negativo
     return { data: b.data, descricao: b.descricao, valor: entrada ? b.abs : -b.abs, idExterno: null }

@@ -23,20 +23,30 @@ export type Etapa =
 
 const fmtQuando = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
 
+function descreverErro(e: unknown): string {
+  if (e instanceof Error) return `${e.name}: ${e.message}`
+  return String(e)
+}
+
 export function Importar() {
   const [etapa, setEtapa] = useState<Etapa>({ tipo: 'inicio' })
   const [colando, setColando] = useState(false)
   const [texto, setTexto] = useState('')
   const [erro, setErro] = useState<string | null>(null)
+  const [detalhe, setDetalhe] = useState<string | null>(null)
   const [progresso, setProgresso] = useState<{ mensagem: string; fracao?: number } | null>(null)
   const [pdfComSenha, setPdfComSenha] = useState<{ nome: string; bytes: Uint8Array; incorreta: boolean } | null>(null)
   const [senha, setSenha] = useState('')
   const arquivoRef = useRef<HTMLInputElement>(null)
+  const ultimoArquivo = useRef('')
   const historico = useLiveQuery(() => db.importacoes.orderBy('data').reverse().limit(20).toArray(), [])
 
   /** Os arquivos são lidos em memória e descartados: só os lançamentos confirmados são salvos. */
   async function lerArquivos(arquivos: File[]) {
     setErro(null)
+    setDetalhe(null)
+    const lista = arquivos.map((f) => `${f.name} (${f.type || 'sem tipo'}, ${Math.round(f.size / 1024)} KB)`).join(', ')
+    ultimoArquivo.current = lista
     const imagens = arquivos.filter((f) => f.type.startsWith('image/') || /\.(jpe?g|png|heic|heif|webp)$/i.test(f.name))
     if (imagens.length > 0) {
       if (imagens.length !== arquivos.length) { setErro('Escolha só imagens, ou um arquivo de cada vez.'); return }
@@ -79,7 +89,8 @@ export function Importar() {
       if (e instanceof Error && e.name === 'SenhaPdfErro') {
         setPdfComSenha({ nome, bytes, incorreta: (e as SenhaPdfErro).incorreta })
       } else {
-        setErro(e instanceof Error ? e.message : 'Não consegui ler este PDF.')
+        setErro('Não consegui ler este PDF.')
+        setDetalhe(descreverErro(e))
       }
     } finally {
       setProgresso(null)
@@ -92,8 +103,9 @@ export function Importar() {
       const { reconhecerTexto } = await import('../../servicos/ocr')
       const texto = await reconhecerTexto(imagens, (fracao) => setProgresso({ mensagem: imagens.length > 1 ? `Lendo ${imagens.length} imagens…` : 'Lendo o texto da imagem…', fracao }))
       abrirTextoLido(imagens.length > 1 ? `${imagens.length} imagens` : imagens[0]?.name ?? 'Imagem', texto, 'imagem')
-    } catch {
+    } catch (e) {
       setErro('Não consegui ler a imagem. Na primeira vez é preciso internet para baixar o leitor de texto (cerca de 5 MB).')
+      setDetalhe(descreverErro(e))
     } finally {
       setProgresso(null)
     }
@@ -218,6 +230,12 @@ export function Importar() {
           </div>
         )}
         {erro && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-900 dark:bg-red-950 dark:text-red-200">{erro}</p>}
+        {detalhe && (
+          <details className="mt-2 text-xs text-slate-600 dark:text-slate-400">
+            <summary className="cursor-pointer py-1">Detalhe técnico (para me mandar)</summary>
+            <pre className="mt-1 overflow-x-auto rounded-lg bg-slate-100 p-2 whitespace-pre-wrap dark:bg-slate-800">{`${detalhe}\nArquivo: ${ultimoArquivo.current}\nNavegador: ${navigator.userAgent}`}</pre>
+          </details>
+        )}
       </Cartao>
 
       <details className="rounded-2xl bg-white p-4 ring-1 ring-slate-200/70 dark:bg-superficie-escuro dark:ring-borda-escuro">

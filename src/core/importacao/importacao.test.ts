@@ -218,3 +218,11 @@ describe('texto de prints de app', () => {
     expect(lerDataCabecalho('IFOOD 45,90', '2026-11-20')).toBeNull()
   })
 })
+
+describe('valor na linha de baixo', () => {
+  it('junta descrição e valor separados', async () => {
+    const { lerTexto: ler } = await import('./texto')
+    const r = ler(['Hoje', 'IFOOD *RESTAURANTE', '- R$ 45,90', 'Pix recebido Maria', '+ R$ 350,00', '05/11 UBER 18,40'].join('\n'), '2026-11-20')
+    expect(r.linhas.map((l) => [l.descricao, l.valor])).toEqual([['IFOOD *RESTAURANTE', -4590], ['Pix recebido Maria', 35000], ['UBER', -1840]])
+  })
+})
