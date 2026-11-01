@@ -1,9 +1,0 @@
-Extrato Conta Corrente
-Conta ;00000000-0
-Período ;01/11/2026 a 20/11/2026
-Saldo ;1.000,00
-
-Data Lançamento;Histórico;Descrição;Valor;Saldo
-05/11/2026;Pix recebido;"Cliente Exemplo";1.500,00;2.500,00
-06/11/2026;Compra no debito;"Supermercado Exemplo";-312,47;2.187,53
-07/11/2026;Pagamento efetuado;"Boleto Condominio";-650,00;1.537,53

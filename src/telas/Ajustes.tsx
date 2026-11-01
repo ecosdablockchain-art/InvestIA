@@ -101,7 +101,6 @@ export function Ajustes() {
   const arquivoRef = useRef<HTMLInputElement>(null)
   const nContextos = useLiveQuery(() => db.contextos.filter((c) => !c.arquivado).count(), [])
   const nCategorias = useLiveQuery(() => db.categorias.filter((c) => !c.arquivada).count(), [])
-  const nRegras = useLiveQuery(() => db.regras.count(), [])
 
   useEffect(() => { void biometriaDisponivel().then(setTemBiometria) }, [])
 
@@ -192,7 +191,6 @@ export function Ajustes() {
       <Grupo titulo="Organização">
         <Linha icone="🗂️" titulo="Contas e negócios" detalhe={nContextos?.toString()} href="#/ajustes/contextos" />
         <Linha icone="🏷️" titulo="Categorias" detalhe={nCategorias?.toString()} href="#/ajustes/categorias" />
-        <Linha icone="🧠" titulo="Regras de categoria" detalhe={nRegras?.toString()} href="#/ajustes/regras" />
       </Grupo>
 
       <Grupo titulo="Crédito" rodape="Usada quando uma fatura vence sem pagamento e vira dívida no rotativo.">

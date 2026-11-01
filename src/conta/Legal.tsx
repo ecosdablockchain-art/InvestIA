@@ -24,13 +24,13 @@ export function Privacidade() {
       <h2>Que dados guardamos</h2>
       <ul>
         <li>Seu e-mail e a senha (guardada só em forma criptografada pelo serviço de login).</li>
-        <li>Os dados financeiros que você digita ou importa: lançamentos, categorias, contas, cartões, dívidas, investimentos e metas.</li>
-        <li>Não guardamos número de cartão, CVV, senhas de banco nem senhas de PDF. Arquivos importados (extratos, faturas, imagens) são lidos no seu aparelho e descartados; só os lançamentos que você confirma são salvos.</li>
+        <li>Os dados financeiros que você digita: lançamentos, categorias, contas, cartões, dívidas, investimentos e metas.</li>
+        <li>Não guardamos número de cartão, CVV nem senhas de banco.</li>
       </ul>
       <h2>Para que usamos</h2>
       <p>Somente para mostrar suas finanças para você, em qualquer aparelho em que você entrar. Não vendemos, não compartilhamos para publicidade e não usamos seus dados financeiros para outros fins.</p>
       <h2>Onde ficam</h2>
-      <p>Na sua conta, num banco de dados hospedado pelo Supabase, com regras que impedem qualquer outro usuário de acessá-los, e em cópia no seu aparelho para funcionar sem internet. A leitura de imagens (OCR) acontece no seu aparelho.</p>
+      <p>Na sua conta, num banco de dados hospedado pelo Supabase, com regras que impedem qualquer outro usuário de acessá-los, e em cópia no seu aparelho para funcionar sem internet.</p>
       <h2>Seus direitos (LGPD)</h2>
       <ul>
         <li>Acessar e baixar seus dados a qualquer momento: Ajustes › Exportar backup.</li>

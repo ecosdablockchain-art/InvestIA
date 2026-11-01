@@ -6,8 +6,6 @@ import { TabBar } from './ui/TabBar'
 import { Painel } from './telas/Painel'
 import { EmBreve } from './telas/EmBreve'
 import { Mes } from './telas/mes/Mes'
-import { Importar } from './telas/importar/Importar'
-import { AjustesRegras } from './telas/AjustesRegras'
 import { Aviso } from './ui/Aviso'
 import { Ajustes, ExcluirConta, Instalar } from './telas/Ajustes'
 import { AjustesCategorias, AjustesContextos } from './telas/AjustesListas'
@@ -54,7 +52,7 @@ export function App() {
   }
 
   const [secao] = rota.split('/')
-  const abas: Aba[] = ['painel', 'mes', 'importar', 'credito', 'patrimonio']
+  const abas: Aba[] = ['painel', 'mes', 'credito', 'patrimonio']
   const aba = abas.includes(secao as Aba) ? (secao as Aba) : secao === 'ajustes' ? 'painel' : null
 
   let tela
@@ -63,12 +61,11 @@ export function App() {
     case 'mes/limites': tela = <Mes key="limites" secaoInicial="limites" />; break
     case 'mes/repetem': tela = <Mes key="repetem" secaoInicial="recorrentes" />; break
     case 'mes/historico': tela = <Mes key="historico" secaoInicial="historico" />; break
-    case 'importar': tela = <Importar />; break
+    case 'mes/novo': tela = <Mes key="novo" abrirNovo />; break
     case 'credito': case 'patrimonio': tela = <EmBreve aba={rota} />; break
     case 'ajustes': tela = <Ajustes />; break
     case 'ajustes/contextos': tela = <AjustesContextos />; break
     case 'ajustes/categorias': tela = <AjustesCategorias />; break
-    case 'ajustes/regras': tela = <AjustesRegras />; break
     case 'ajustes/excluir-conta': tela = <ExcluirConta />; break
     case 'ajustes/instalar': tela = <Instalar />; break
     default: tela = <Painel />

@@ -12,9 +12,6 @@ export const IconePainel = (p: P) => (
 export const IconeMes = (p: P) => (
   <svg {...base(p)}><rect x="3" y="4.5" width="18" height="16.5" rx="2.5" /><path d="M3 9.5h18M8 2.5v4M16 2.5v4M7.5 14h3M13.5 14h3M7.5 17.5h3" /></svg>
 )
-export const IconeImportar = (p: P) => (
-  <svg {...base(p)}><path d="M12 3v12M7 10l5 5 5-5" /><path d="M4 16.5V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2.5" /></svg>
-)
 export const IconeCredito = (p: P) => (
   <svg {...base(p)}><rect x="2.5" y="5" width="19" height="14" rx="2.5" /><path d="M2.5 10h19M6.5 15h4" /></svg>
 )

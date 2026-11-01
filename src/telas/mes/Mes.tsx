@@ -16,12 +16,12 @@ const maiuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
 
 export type Secao = 'lancamentos' | 'limites' | 'recorrentes' | 'historico'
 
-export function Mes({ secaoInicial = 'lancamentos' }: { secaoInicial?: Secao }) {
+export function Mes({ secaoInicial = 'lancamentos', abrirNovo = false }: { secaoInicial?: Secao; abrirNovo?: boolean }) {
   const hoje = competenciaDe(hojeISO())
   const [competencia, setCompetencia] = useState(hoje)
   const [secao, setSecao] = useState<Secao>(secaoInicial)
   const [idVisao, setIdVisao] = useState<string | null>(null)
-  const [pedido, setPedido] = useState<PedidoLancamento | null>(null)
+  const [pedido, setPedido] = useState<PedidoLancamento | null>(abrirNovo ? {} : null)
   const base = useDadosBase()
 
   const lancamentosMes = useLiveQuery(() => db.lancamentos.where('competencia').equals(competencia).toArray(), [competencia])
@@ -81,7 +81,7 @@ export function Mes({ secaoInicial = 'lancamentos' }: { secaoInicial?: Secao }) 
       </button>
       )}
 
-      <FolhaLancamento pedido={pedido} base={base} competencia={competencia} contextoPadrao={contextoPadrao} onFechar={() => setPedido(null)} />
+      <FolhaLancamento pedido={pedido} base={base} competencia={competencia} contextoPadrao={contextoPadrao} onFechar={() => { setPedido(null); if (window.location.hash === '#/mes/novo') history.replaceState(null, '', '#/mes') }} />
     </Tela>
   )
 }

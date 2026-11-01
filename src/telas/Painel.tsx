@@ -84,8 +84,8 @@ export function Painel() {
 
       {vazio ? (
         <EstadoVazio icone="🧭" titulo="Tudo pronto para começar"
-          texto="Lance seus gastos na aba Mês. A previsão de 6 meses, os alertas e o gráfico de categorias aparecem aqui assim que houver dados.">
-          <a href="#/mes" className="inline-flex min-h-11 items-center rounded-xl bg-marca-600 px-4 font-semibold text-white">Lançar o primeiro gasto</a>
+          texto="Toque em Lançar, na barra de baixo, para registrar seus gastos e entradas. A previsão de 6 meses, os alertas e o gráfico de categorias aparecem aqui assim que houver dados.">
+          <a href="#/mes/novo" className="inline-flex min-h-11 items-center rounded-xl bg-marca-600 px-4 font-semibold text-white">Lançar o primeiro gasto</a>
         </EstadoVazio>
       ) : (
         <>
