@@ -11,6 +11,7 @@ import Dexie from 'dexie'
 import { supabase } from '../nuvem/cliente'
 import { sincronizarAgora, temPendencias, useEstadoSinc } from '../nuvem/estado'
 import { useSessao } from '../conta/sessao'
+import { procurarAtualizacao } from '../ui/Atualizacao'
 
 const fmtHora = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
 
@@ -239,6 +240,7 @@ export function Ajustes() {
         <Linha icone="📄" titulo="Termos de uso" href="#/termos" />
         <Linha icone="🗑️" titulo="Excluir minha conta" perigo href="#/ajustes/excluir-conta" />
         <Linha icone="ℹ️" titulo="Versão" detalhe={__VERSAO__} />
+        <Linha icone="🔄" titulo="Procurar atualização" onClick={() => { procurarAtualizacao(); setMensagem({ tipo: 'ok', texto: 'Procurando… se houver versão nova, aparece um aviso azul no topo.' }) }} />
       </Grupo>
     </Tela>
   )

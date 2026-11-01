@@ -9,7 +9,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
+      injectRegister: false,
       workbox: {
         // OCR é grande: fica fora da instalação e entra no cache no primeiro uso
         globPatterns: ['**/*.{js,mjs,css,html,svg,png,webmanifest}'],
@@ -42,7 +43,7 @@ export default defineConfig({
     }),
   ],
   define: {
-    __VERSAO__: JSON.stringify(process.env.npm_package_version ?? '0.1.0'),
+    __VERSAO__: JSON.stringify(`${process.env.npm_package_version ?? '0.1.0'} · ${(process.env.GITHUB_SHA ?? 'local').slice(0, 7)} · ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`),
   },
   test: {
     environment: 'node',

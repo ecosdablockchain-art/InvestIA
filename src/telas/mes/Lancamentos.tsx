@@ -61,7 +61,7 @@ export function Lancamentos({ lancamentos, base, visao, competencia, onEditar, o
       )}
 
       {lancamentos.length === 0 ? (
-        <EstadoVazio icone="🧾" titulo="Nenhum lançamento neste mês" texto="Toque no + para lançar um gasto ou entrada. Também dá para importar o extrato do banco (fase 4).">
+        <EstadoVazio icone="🧾" titulo="Nenhum lançamento neste mês" texto="Toque no + para lançar um gasto ou entrada, ou use a aba Importar para trazer o extrato do banco.">
           <Botao onClick={onNovo}>Adicionar lançamento</Botao>
         </EstadoVazio>
       ) : grupos.length === 0 ? (

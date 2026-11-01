@@ -202,6 +202,13 @@ export function Conferir({ nome, leitura, onCancelar, onLancado }: {
         {indices.length === 0 && <li className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">Nada aqui.</li>}
       </ul>
       <p className="px-1 text-xs text-slate-500 dark:text-slate-400">Ao trocar a categoria de um item, o app aprende e sugere a mesma da próxima vez.</p>
+      {leitura.textoLido && (
+        <details className="rounded-2xl bg-white p-4 text-sm ring-1 ring-slate-200/70 dark:bg-superficie-escuro dark:ring-borda-escuro">
+          <summary className="cursor-pointer font-medium">Ver o texto lido do arquivo</summary>
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Se algum item veio errado ou faltou, copie um trecho daqui (pode trocar nomes e valores) e mande para ajustarmos o leitor.</p>
+          <pre className="mt-2 max-h-80 overflow-auto rounded-lg bg-slate-100 p-2 text-xs whitespace-pre-wrap dark:bg-slate-800">{leitura.textoLido}</pre>
+        </details>
+      )}
       <div className="h-20" aria-hidden />
 
       <div className="fixed inset-x-0 bottom-[calc(3.6rem+env(safe-area-inset-bottom))] z-20 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-borda-escuro dark:bg-fundo-escuro/95">

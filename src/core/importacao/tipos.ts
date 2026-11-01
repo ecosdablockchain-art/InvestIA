@@ -15,4 +15,6 @@ export interface ResultadoLeitura {
   /** Fatura de cartão: os valores positivos costumam ser compras. */
   ehCartao: boolean
   avisos: string[]
+  /** Texto bruto lido (PDF, imagem ou colado), para conferência e diagnóstico. */
+  textoLido?: string
 }

@@ -45,18 +45,39 @@ function deslocar(d: DataISO, dias: number): DataISO {
 
 const SO_VALOR = new RegExp(String.raw`^(${NUM})\s*([DC])?$`, 'i')
 
-/** Em prints de app, o valor às vezes cai na linha de baixo da descrição: junta as duas. */
-export function juntarValorDaLinhaDeBaixo(texto: string): string[] {
-  const linhas = texto.split(/\r?\n/).map((l) => l.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim()).filter(Boolean)
+const DUAS_COLUNAS = new RegExp(String.raw`((?:${NUM})(?:\s*[DC])?)\s+(?=\d{1,2}/\d{1,2}(?:/\d{2,4})?\s+\S)`, 'gi')
+const SO_HORA = /^\d{1,2}[:h]\d{2}(:\d{2})?$/i
+
+/**
+ * Arruma o texto antes de ler:
+ * - fatura em duas colunas: "05/10 IFOOD 45,90 07/10 UBER 18,40" vira duas linhas;
+ * - linhas só com horário ("14:32") são descartadas;
+ * - descrição em 1 a 3 linhas seguida de uma linha só com o valor (prints de app) vira uma linha só.
+ */
+export function prepararLinhas(texto: string, hoje: DataISO): string[] {
+  const brutas = texto.split(/\r?\n/)
+    .flatMap((l) => l.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim().replace(DUAS_COLUNAS, '$1\n').split('\n'))
+    .map((l) => l.trim())
+    .filter((l) => l && !SO_HORA.test(l))
   const out: string[] = []
-  for (let i = 0; i < linhas.length; i++) {
-    const atual = linhas[i] as string
-    const prox = linhas[i + 1]
-    if (prox && SO_VALOR.test(prox) && !VALORES_NO_FIM.test(atual) && /[a-z]/i.test(atual)) {
-      out.push(`${atual} ${prox}`)
-      i++
-    } else out.push(atual)
+  let pendentes: string[] = []
+  const descarregar = () => { out.push(...pendentes); pendentes = [] }
+  for (const l of brutas) {
+    if (lerDataCabecalho(l, hoje)) { descarregar(); out.push(l); continue }
+    if (SO_VALOR.test(l)) {
+      if (pendentes.length) {
+        const descricao = pendentes.slice(-3)
+        out.push(...pendentes.slice(0, -3))
+        out.push(`${descricao.join(' ')} ${l}`)
+        pendentes = []
+      } else out.push(l)
+      continue
+    }
+    if (VALORES_NO_FIM.test(l)) { descarregar(); out.push(l); continue }
+    if (/[a-z]/i.test(l)) pendentes.push(l)
+    else { descarregar(); out.push(l) }
   }
+  descarregar()
   return out
 }
 
@@ -72,7 +93,7 @@ export function lerTexto(texto: string, hoje: DataISO): ResultadoLeitura {
   const brutas: Bruta[] = []
   let ignoradas = 0
   let dataAtual: DataISO | null = null
-  for (const l of juntarValorDaLinhaDeBaixo(texto)) {
+  for (const l of prepararLinhas(texto, hoje)) {
     const cabecalho = lerDataCabecalho(l, hoje)
     if (cabecalho) { dataAtual = cabecalho; continue }
 
@@ -110,5 +131,5 @@ export function lerTexto(texto: string, hoje: DataISO): ResultadoLeitura {
     return { data: b.data, descricao: b.descricao, valor: entrada ? b.abs : -b.abs, idExterno: null }
   })
   const avisos = ignoradas > 0 ? [`${ignoradas} ${ignoradas === 1 ? 'linha não foi reconhecida' : 'linhas não foram reconhecidas'} como lançamento (cabeçalhos, totais ou sem data/valor).`] : []
-  return { linhas, formato: 'texto', ehCartao: ehFatura && negativos > 0, avisos }
+  return { linhas, formato: 'texto', ehCartao: ehFatura && negativos > 0, avisos, textoLido: texto }
 }

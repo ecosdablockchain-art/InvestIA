@@ -226,3 +226,29 @@ describe('valor na linha de baixo', () => {
     expect(r.linhas.map((l) => [l.descricao, l.valor])).toEqual([['IFOOD *RESTAURANTE', -4590], ['Pix recebido Maria', 35000], ['UBER', -1840]])
   })
 })
+
+describe('formatos difíceis', () => {
+  it('fatura em duas colunas vira duas compras', async () => {
+    const { lerTexto: ler } = await import('./texto')
+    const r = ler('05/10 IFOOD *RESTAURANTE 45,90 0,00 07/10 UBER *TRIP 18,40 0,00\n08/10 MERCADOLIVRE*LOJA 03/10 199,90 09/10 NETFLIX.COM 55,90', '2026-11-20')
+    expect(r.linhas.map((l) => [l.data, l.descricao, l.valor])).toEqual([
+      ['2026-10-05', 'IFOOD *RESTAURANTE', -4590],
+      ['2026-10-07', 'UBER *TRIP', -1840],
+      ['2026-10-08', 'MERCADOLIVRE*LOJA 03/10', -19990],
+      ['2026-10-09', 'NETFLIX.COM', -5590],
+    ])
+  })
+  it('descrição em várias linhas, horário solto e valor embaixo', async () => {
+    const { lerTexto: ler } = await import('./texto')
+    const r = ler(['Hoje', 'PIX ENVIADO', 'Fulano de Tal', '14:32', '-R$ 120,00', 'Compra no débito', 'Padaria Exemplo', '- R$ 18,50', '18 de novembro', 'Pix recebido', 'Maria', '+ R$ 350,00'].join('\n'), '2026-11-20')
+    expect(r.linhas.map((l) => [l.data, l.descricao, l.valor])).toEqual([
+      ['2026-11-20', 'PIX ENVIADO Fulano de Tal', -12000],
+      ['2026-11-20', 'Compra no débito Padaria Exemplo', -1850],
+      ['2026-11-18', 'Pix recebido Maria', 35000],
+    ])
+  })
+  it('guarda o texto lido para conferência', async () => {
+    const { lerTexto: ler } = await import('./texto')
+    expect(ler('05/11 IFOOD 45,90', '2026-11-20').textoLido).toBe('05/11 IFOOD 45,90')
+  })
+})

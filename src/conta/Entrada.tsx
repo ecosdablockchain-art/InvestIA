@@ -9,6 +9,7 @@ import { sincronizar } from '../nuvem/sincronizacao'
 import { App, useTema } from '../App'
 import { usePreferencias } from '../seguranca/preferencias'
 import { Botao } from '../ui/componentes'
+import { AvisoAtualizacao } from '../ui/Atualizacao'
 import { useSessao, type Usuario } from './sessao'
 import { TelaConta, TelaNovaSenha } from './TelaConta'
 import { Privacidade, Termos } from './Legal'
@@ -20,6 +21,10 @@ function Centro({ children }: { children: React.ReactNode }) {
 
 /** Porta de entrada: páginas públicas, login, e só depois o app com o banco de quem entrou. */
 export function Entrada() {
+  return <><AvisoAtualizacao /><Conteudo /></>
+}
+
+function Conteudo() {
   const prefs = usePreferencias()
   useTema(prefs.tema)
   const rota = useRota()
