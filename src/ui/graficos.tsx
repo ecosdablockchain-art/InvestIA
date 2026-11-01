@@ -184,3 +184,43 @@ export function GraficoLinha({ titulo, rotulos, valores, nome }: { titulo: strin
 
 export const COR_ENTRADAS = 'var(--serie-1)'
 export const COR_SAIDAS = 'var(--serie-2)'
+
+export interface BarraStatus { rotulo: string; valor: Centavos; cor: string; status: string }
+
+/** Colunas de uma série com a cor da situação (ex.: faturas). Toque escolhe a coluna. */
+export function GraficoStatus({ titulo, barras, selecionada, onSelecionar, legenda }: {
+  titulo: string; barras: BarraStatus[]; selecionada: number; onSelecionar: (i: number) => void
+  legenda: { nome: string; cor: string }[]
+}) {
+  const L = 340, A = 150, esq = 40, dir = 4, topo = 8, base = 22
+  const max = teto(Math.max(0, ...barras.map((b) => b.valor)))
+  const grupo = (L - esq - dir) / barras.length
+  const largura = Math.min(26, grupo * 0.6)
+  const y = (v: number) => topo + (A - topo - base) * (1 - v / max)
+  return (
+    <figure>
+      <svg viewBox={`0 0 ${L} ${A}`} className="w-full" role="img" aria-label={`${titulo}. Toque numa coluna para ver o mês.`}>
+        {[0, 0.5, 1].map((f) => (
+          <g key={f}>
+            <line x1={esq} x2={L - dir} y1={y(max * f)} y2={y(max * f)} stroke="var(--grade)" strokeWidth={1} />
+            <text x={esq - 6} y={y(max * f) + 3.5} textAnchor="end" fontSize={10} fill="var(--eixo-texto)">{formatarEixo(Math.round(max * f))}</text>
+          </g>
+        ))}
+        {barras.map((b, i) => {
+          const x = esq + grupo * i + (grupo - largura) / 2
+          const ativo = i === selecionada
+          return (
+            <g key={b.rotulo} onClick={() => onSelecionar(i)} style={{ cursor: 'pointer' }}>
+              {ativo && <rect x={esq + grupo * i + 1} y={topo} width={grupo - 2} height={A - topo - base} rx={6} fill="var(--grade)" opacity={0.6} />}
+              <path d={barra(x, y(b.valor), largura, (b.valor / max) * (A - topo - base), 4)} fill={b.cor} />
+              <text x={esq + grupo * i + grupo / 2} y={A - 6} textAnchor="middle" fontSize={10.5} fontWeight={ativo ? 600 : 400} fill="var(--eixo-texto)">{b.rotulo}</text>
+              <rect x={esq + grupo * i} y={0} width={grupo} height={A} fill="transparent"><title>{`${b.rotulo}: ${formatarBRL(b.valor)} (${b.status})`}</title></rect>
+            </g>
+          )
+        })}
+      </svg>
+      <Legenda series={legenda} />
+      <TabelaDados rotulos={barras.map((b) => `${b.rotulo} (${b.status})`)} series={[{ nome: 'Fatura', cor: '', valores: barras.map((b) => b.valor) }]} titulo={titulo} />
+    </figure>
+  )
+}

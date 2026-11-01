@@ -51,7 +51,7 @@ src/
 2. ✅ Lançamentos, orçamento do mês, limites, recorrentes
 3. ✅ Painel completo, histórico e previsão de 6 meses
 4–5. Importação de extratos (OFX, CSV, PDF, OCR): removida a pedido; o código está no histórico do git (commit 9bcdcf2)
-6. Cartões, faturas, parcelados, dívidas e simulador
+6. ✅ Cartões, faturas, parcelados, dívidas e simulador
 7. Investimentos, cotações, reserva, metas, patrimônio
 8. Casa compartilhada
 9. Notificações

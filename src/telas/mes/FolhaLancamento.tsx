@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { competenciaDaFatura } from '../../core/credito'
+import { nomeCompetencia as nomeMes } from '../../core/datas'
 import { db } from '../../db/banco'
 import type { Lancamento, TipoLancamento } from '../../db/tipos'
 import { apagarLancamento, restaurarLancamento, salvarLancamento } from '../../db/repositorio'
@@ -26,6 +29,8 @@ export function FolhaLancamento({ pedido, base, competencia, contextoPadrao, onF
   const [data, setData] = useState(hojeISO())
   const [todoMes, setTodoMes] = useState(false)
   const [observacao, setObservacao] = useState('')
+  const [cartaoId, setCartaoId] = useState<string | null>(null)
+  const cartoes = useLiveQuery(() => db.cartoes.filter((c) => !c.arquivado).toArray(), [])
   const [erro, setErro] = useState<string | null>(null)
 
   useEffect(() => {
@@ -39,6 +44,7 @@ export function FolhaLancamento({ pedido, base, competencia, contextoPadrao, onF
     setContextoId(l?.contextoId ?? contextoPadrao)
     setData(l?.data ?? (competenciaDe(hoje) === competencia ? hoje : dataNaCompetencia(competencia, 1)))
     setObservacao(l?.observacao ?? '')
+    setCartaoId(l?.cartaoId ?? null)
     setErro(null)
     if (l?.recorrenciaId) {
       void db.recorrencias.get(l.recorrenciaId).then((r) => setTodoMes(!!r && (r.fim === null || r.fim > l.competencia) && r.ativa))
@@ -52,7 +58,7 @@ export function FolhaLancamento({ pedido, base, competencia, contextoPadrao, onF
 
   async function salvar() {
     try {
-      await salvarLancamento(db, { tipo, valor, data, descricao, observacao, categoriaId, contextoId, todoMes }, editando)
+      await salvarLancamento(db, { tipo, valor, data, descricao, observacao, categoriaId, contextoId, todoMes, cartaoId: tipo === 'gasto' ? cartaoId : null }, editando)
       mostrarAviso(editando ? 'Lançamento atualizado' : tipo === 'gasto' ? 'Gasto lançado' : 'Entrada lançada')
       onFechar()
     } catch (e) {
@@ -102,6 +108,21 @@ export function FolhaLancamento({ pedido, base, competencia, contextoPadrao, onF
         )}
 
         <Campo rotulo="Data" type="date" value={data} onChange={(e) => e.target.value && setData(e.target.value)} />
+
+        {tipo === 'gasto' && cartoes && cartoes.length > 0 && (() => {
+          const cartao = cartoes.find((c) => c.id === cartaoId)
+          return (
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium">Pago com</span>
+              <select value={cartaoId ?? ''} onChange={(e) => setCartaoId(e.target.value || null)}
+                className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-base dark:border-borda-escuro dark:bg-slate-900">
+                <option value="">Dinheiro, Pix ou débito</option>
+                {cartoes.map((c) => <option key={c.id} value={c.id}>💳 {c.apelido}</option>)}
+              </select>
+              {cartao && <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">Entra na fatura de {nomeMes(competenciaDaFatura(data, cartao))}.</span>}
+            </label>
+          )
+        })()}
 
         <div className="flex items-center justify-between gap-3 rounded-xl bg-white px-4 py-2 ring-1 ring-slate-200 dark:bg-superficie-escuro dark:ring-borda-escuro">
           <div>

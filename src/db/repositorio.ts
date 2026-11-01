@@ -12,6 +12,7 @@ export interface DadosLancamento {
   categoriaId: string | null
   contextoId: string
   todoMes: boolean
+  cartaoId?: string | null
 }
 
 export function validarLancamento(d: DadosLancamento): string | null {
@@ -38,6 +39,7 @@ export async function salvarLancamento(banco: BancoFinancas, dados: DadosLancame
       const rec = criar<Recorrencia>({
         descricao, tipo: dados.tipo, valor: dados.valor, categoriaId: dados.categoriaId, contextoId: dados.contextoId,
         diaDoMes: Number(dados.data.slice(8, 10)), inicio: competencia, fim: null, ativa: true,
+        cartaoId: dados.tipo === 'gasto' ? dados.cartaoId ?? null : null,
       })
       await banco.recorrencias.add(rec)
       recorrenciaId = rec.id
@@ -51,6 +53,7 @@ export async function salvarLancamento(banco: BancoFinancas, dados: DadosLancame
     const campos = {
       tipo: dados.tipo, valor: dados.valor, data: dados.data, competencia, descricao, observacao: dados.observacao.trim(),
       categoriaId: dados.categoriaId, contextoId: dados.contextoId, recorrenciaId,
+      cartaoId: dados.tipo === 'gasto' ? dados.cartaoId ?? null : null,
     }
     const lanc: Lancamento = existente
       ? tocar({ ...existente, ...campos })
@@ -85,6 +88,7 @@ export async function lancarRecorrencia(banco: BancoFinancas, rec: Recorrencia, 
     const lanc = criar<Lancamento>({
       tipo: rec.tipo, valor: rec.valor, data, competencia, descricao: rec.descricao, observacao: '',
       categoriaId: rec.categoriaId, contextoId: rec.contextoId, metaId: null, recorrenciaId: rec.id, origem: 'manual', importacaoId: null,
+      cartaoId: rec.cartaoId ?? null,
     })
     await banco.lancamentos.add(lanc)
     return lanc

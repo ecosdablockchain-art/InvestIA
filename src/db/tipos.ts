@@ -45,7 +45,9 @@ export interface Lancamento extends Base {
   recorrenciaId: string | null
   origem: OrigemLancamento
   importacaoId: string | null
-  idExterno?: string | null // identificador do banco (FITID), para não importar duas vezes
+  idExterno?: string | null
+  /** Compra feita no cartão (entra na fatura). null = dinheiro, Pix ou débito. */
+  cartaoId?: string | null
 }
 
 /** Molde do que se repete todo mês. Alimenta "contas que se repetem" e a previsão. */
@@ -59,6 +61,7 @@ export interface Recorrencia extends Base {
   inicio: Competencia
   fim: Competencia | null
   ativa: boolean
+  cartaoId?: string | null
 }
 
 export interface RegraCategoria extends Base {
@@ -93,6 +96,8 @@ export interface Fatura extends Base {
   valorInformado: Centavos | null // null = usar projeção das parcelas
   paga: boolean
   pagaEm: DataISO | null
+  /** O rotativo desta fatura já foi criado uma vez (não recriar se o usuário apagar). */
+  rotativoGerado?: boolean
 }
 
 export interface CompraParcelada extends Base {

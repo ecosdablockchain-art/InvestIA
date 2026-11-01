@@ -1,4 +1,10 @@
+import { useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { compor, competenciaDaFatura, datasDaFatura, diasParaVencer, idFatura, parcelaNoMes, statusDaFatura } from '../core/credito'
+import { simularQuitacao } from '../core/dividas'
+import { somarMeses } from '../core/datas'
+import { processarFaturasVencidas } from '../db/credito'
+import type { SaidaPrevista } from '../core/previsao'
 import { db } from '../db/banco'
 import { competenciaDe, formatarData, hojeISO, nomeCompetencia, nomeCompetenciaCurto } from '../core/datas'
 import { formatarBRL } from '../core/dinheiro'
@@ -24,8 +30,16 @@ export function Painel() {
   const recorrencias = useLiveQuery(() => db.recorrencias.toArray(), [])
   const investimentos = useLiveQuery(() => db.investimentos.toArray(), [])
   const dividas = useLiveQuery(() => db.dividas.toArray(), [])
+  const cartoes = useLiveQuery(() => db.cartoes.filter((c) => !c.arquivado).toArray(), [])
+  const parcelados = useLiveQuery(() => db.parcelados.toArray(), [])
+  const faturas = useLiveQuery(() => db.faturas.toArray(), [])
+  const comprasCartao = useLiveQuery(
+    () => db.lancamentos.where('competencia').between(somarMeses(competencia, -3), somarMeses(competencia, 2), true, true).filter((l) => !!l.cartaoId).toArray(),
+    [competencia],
+  )
+  useEffect(() => { void processarFaturasVencidas(db, hoje, prefs.taxaRotativoMensal) }, [hoje, prefs.taxaRotativoMensal])
 
-  if (!base || !lancamentos || !recorrencias || !investimentos || !dividas) return <Tela titulo="Painel"><p className="sr-only">Carregando…</p></Tela>
+  if (!base || !lancamentos || !recorrencias || !investimentos || !dividas || !cartoes || !parcelados || !faturas || !comprasCartao) return <Tela titulo="Painel"><p className="sr-only">Carregando…</p></Tela>
 
   const ativos = base.contextos.filter((c) => !c.arquivado)
   const idVisao = prefs.visaoPainel === 'pessoal' ? base.pessoalId ?? 'tudo' : prefs.visaoPainel
@@ -38,15 +52,42 @@ export function Painel() {
   const recsVisao = filtrarVisao(recorrencias, visao)
   const situacao = situacaoDoMes(recsVisao, lancamentos, competencia)
 
+  // faturas: vencida (não paga) e vencendo em até 3 dias
+  const alertasFatura: Alerta[] = []
+  for (const c of cartoes) {
+    const aberta = competenciaDaFatura(hoje, c)
+    for (const comp of [somarMeses(aberta, -2), somarMeses(aberta, -1), aberta]) {
+      const f = faturas.find((x) => x.id === idFatura(c.id, comp))
+      const st = statusDaFatura(comp, c, f?.paga ?? false, hoje)
+      const valor = compor(c, comp, comprasCartao, parcelados, f?.valorInformado ?? null).valor
+      if (valor <= 0) continue
+      const vencimento = datasDaFatura(comp, c).vencimento
+      if (st === 'vencida' && vencimento > c.criadoEm.slice(0, 10)) alertasFatura.push({ tipo: 'fatura-vencida', gravidade: 'critico', faturaId: idFatura(c.id, comp), cartao: c.apelido, vencimento, valor })
+      else if ((st === 'fechada' || st === 'aberta') && diasParaVencer(comp, c, hoje) <= 3) alertasFatura.push({ tipo: 'fatura-vencendo', gravidade: 'atencao', faturaId: idFatura(c.id, comp), cartao: c.apelido, vencimento, valor })
+    }
+  }
   const alertas = ordenarAlertas([
+    ...alertasFatura,
     ...alertasDeLimite(gastos, base.categorias.filter((c) => !c.arquivada)),
     ...alertasDeContasAtrasadas(situacao, hoje),
   ])
 
+  // previsão: a partir do próximo mês, parcelas de cartão e das dívidas (o mês atual usa o que já foi lançado)
+  const saidasPrevistas: SaidaPrevista[] = []
+  if (visao.tipo === 'tudo' || visao.id === base.pessoalId) {
+    for (let i = 1; i < MESES_PREVISAO; i++) {
+      const comp = somarMeses(competencia, i)
+      const parcelas = parcelados.reduce((a, p) => a + (parcelaNoMes(p, comp)?.valor ?? 0), 0)
+      if (parcelas) saidasPrevistas.push({ competencia: comp, valor: parcelas, origem: 'cartao' })
+    }
+    const quitacao = simularQuitacao(dividas)
+    quitacao.porMes.slice(0, MESES_PREVISAO - 1).forEach((valor, i) => { if (valor) saidasPrevistas.push({ competencia: somarMeses(competencia, i + 1), valor, origem: 'divida' }) })
+  }
+
   const previsao = preverMeses({
     inicio: competencia, meses: MESES_PREVISAO, recorrencias: recsVisao,
     lancadasNoInicio: new Set(situacao.filter((s) => s.lancada).map((s) => s.recorrencia.id)),
-    realizadoInicio: resumo, saidasPrevistas: [],
+    realizadoInicio: resumo, saidasPrevistas,
   })
   const sobraPrevista = previsao.reduce((a, m) => a + m.saldo, 0)
   const ranking = rankingCategorias(gastos, 6)
@@ -97,12 +138,12 @@ export function Painel() {
                 { nome: 'Entradas', cor: COR_ENTRADAS, valores: previsao.map((m) => m.entradas) },
                 { nome: 'Saídas', cor: COR_SAIDAS, valores: previsao.map((m) => m.saidas) },
               ]}
-              notaDoMes={(i) => (i === 0 ? 'lançado + o que falta' : 'contas que se repetem')}
+              notaDoMes={(i) => (i === 0 ? 'lançado + o que falta' : 'repetem + parcelas + dívidas')}
             />
             <p className="mt-3 border-t border-slate-200 pt-3 text-sm dark:border-borda-escuro">
               Sobra prevista no período: <strong className={`numeros ${sobraPrevista < 0 ? 'text-negativo dark:text-negativo-escuro' : ''}`}>{formatarBRL(sobraPrevista)}</strong>
             </p>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Parcelas de cartão e de dívidas entram aqui na fase 6.</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Saídas futuras: contas que se repetem, parcelas de compras no cartão e parcelas das dívidas.</p>
           </Cartao>
 
           <Cartao titulo="Para onde foi o dinheiro">
@@ -185,7 +226,7 @@ function descrever(a: Alerta, base: DadosBase): { icone: string; titulo: string;
     case 'fatura-vencendo':
       return { icone: '⏰', titulo: `Fatura ${a.cartao} vence em breve`, texto: `${formatarData(a.vencimento)} · ${formatarBRL(a.valor)}`, href: '#/credito' }
     case 'fatura-vencida':
-      return { icone: '!', titulo: `Fatura ${a.cartao} vencida`, texto: `venceu em ${formatarData(a.vencimento)} · ${formatarBRL(a.valor)}`, href: '#/credito' }
+      return { icone: '!', titulo: `Fatura ${a.cartao} vencida sem pagamento`, texto: `venceu em ${formatarData(a.vencimento)} · ${formatarBRL(a.valor)} · entrou em Dívidas como rotativo`, href: '#/credito/dividas' }
     case 'meta-atrasada':
       return { icone: '⏰', titulo: `Meta ${a.nome} está atrasada`, texto: 'o aporte mensal não está acompanhando o prazo', href: '#/patrimonio' }
   }

@@ -58,3 +58,7 @@ body {
   --grade: #263149;
   --eixo-texto: #94a0b8;
 }
+
+/* Status (reservados: sempre com texto/ícone junto) */
+:root { --st-paga: #0ca30c; --st-vencida: #d03b3b; --st-pagar: #e09a00; --st-futura: #94a3b8; }
+.dark { --st-futura: #64748b; }

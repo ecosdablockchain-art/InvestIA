@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import type { Lancamento } from '../../db/tipos'
 import { db } from '../../db/banco'
 import { apagarLancamento, restaurarLancamento } from '../../db/repositorio'
@@ -15,6 +16,8 @@ export function Lancamentos({ lancamentos, base, visao, competencia, onEditar, o
   lancamentos: Lancamento[]; base: DadosBase; visao: Visao; competencia: Competencia
   onEditar: (l: Lancamento) => void; onNovo: () => void
 }) {
+  const cartoes = useLiveQuery(() => db.cartoes.toArray(), [])
+  const nomeCartao = (id?: string | null) => (id ? cartoes?.find((c) => c.id === id)?.apelido : undefined)
   const [filtro, setFiltro] = useState<FiltroLancamentos>({ texto: '', categoriaId: 'todas', tipo: 'todos' })
   const resumo = resumirMes(lancamentos, competencia, visao)
   const visiveis = filtrarLancamentos(lancamentos, filtro, (id) => base.categoria(id)?.nome ?? '')
@@ -88,7 +91,7 @@ export function Lancamentos({ lancamentos, base, visao, competencia, onEditar, o
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-medium">{l.descricao}</span>
                           <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
-                            {[cat?.nome ?? 'Sem categoria', ctx, l.recorrenciaId ? '🔁 todo mês' : null].filter(Boolean).join(' · ')}
+                            {[cat?.nome ?? 'Sem categoria', ctx, nomeCartao(l.cartaoId) ? `💳 ${nomeCartao(l.cartaoId)}` : null, l.recorrenciaId ? '🔁 todo mês' : null].filter(Boolean).join(' · ')}
                           </span>
                         </span>
                         <span className={`numeros shrink-0 font-semibold ${l.tipo === 'gasto' ? '' : 'text-positivo dark:text-positivo-escuro'}`}>{valor}</span>

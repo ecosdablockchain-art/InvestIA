@@ -5,6 +5,7 @@ import { TelaBloqueio } from './seguranca/TelaBloqueio'
 import { TabBar } from './ui/TabBar'
 import { Painel } from './telas/Painel'
 import { EmBreve } from './telas/EmBreve'
+import { Credito } from './telas/credito/Credito'
 import { Mes } from './telas/mes/Mes'
 import { Aviso } from './ui/Aviso'
 import { Ajustes, ExcluirConta, Instalar } from './telas/Ajustes'
@@ -62,7 +63,9 @@ export function App() {
     case 'mes/repetem': tela = <Mes key="repetem" secaoInicial="recorrentes" />; break
     case 'mes/historico': tela = <Mes key="historico" secaoInicial="historico" />; break
     case 'mes/novo': tela = <Mes key="novo" abrirNovo />; break
-    case 'credito': case 'patrimonio': tela = <EmBreve aba={rota} />; break
+    case 'credito': tela = <Credito key="cartoes" />; break
+    case 'credito/dividas': tela = <Credito key="dividas" secaoInicial="dividas" />; break
+    case 'patrimonio': tela = <EmBreve aba={rota} />; break
     case 'ajustes': tela = <Ajustes />; break
     case 'ajustes/contextos': tela = <AjustesContextos />; break
     case 'ajustes/categorias': tela = <AjustesCategorias />; break
