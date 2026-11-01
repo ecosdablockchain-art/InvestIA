@@ -170,6 +170,14 @@ export interface PatrimonioMensal extends Base {
   totalDividas: Centavos
 }
 
+/** Ajustes da conta: valem em todos os aparelhos (vão para a nuvem). id fixo 'conta'. */
+export interface AjustesConta extends Base {
+  perfil: 'conservador' | 'moderado' | 'arrojado'
+  fonteCotacao: 'brapi' | 'alphavantage'
+  chaveCotacao: string
+  taxaRotativoMensal: number
+}
+
 export interface CasaMembro extends Base {
   nome: string
   percentual: number // 0 a 100

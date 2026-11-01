@@ -4,6 +4,7 @@ import { compor, competenciaDaFatura, datasDaFatura, diasParaVencer, idFatura, p
 import { simularQuitacao } from '../core/dividas'
 import { somarMeses } from '../core/datas'
 import { processarFaturasVencidas } from '../db/credito'
+import { lerAjustesConta } from '../db/ajustesConta'
 import type { SaidaPrevista } from '../core/previsao'
 import { usePatrimonio } from './patrimonio/dados'
 import { db } from '../db/banco'
@@ -38,7 +39,7 @@ export function Painel() {
     () => db.lancamentos.where('competencia').between(somarMeses(competencia, -3), somarMeses(competencia, 2), true, true).filter((l) => !!l.cartaoId).toArray(),
     [competencia],
   )
-  useEffect(() => { void processarFaturasVencidas(db, hoje, prefs.taxaRotativoMensal) }, [hoje, prefs.taxaRotativoMensal])
+  useEffect(() => { void lerAjustesConta().then((a) => processarFaturasVencidas(db, hoje, a.taxaRotativoMensal)) }, [hoje])
 
   if (!base || !lancamentos || !recorrencias || !dividas || !cartoes || !parcelados || !faturas || !comprasCartao || !patrimonio) return <Tela titulo="Painel"><p className="sr-only">Carregando…</p></Tela>
 

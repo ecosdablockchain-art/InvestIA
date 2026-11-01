@@ -6,11 +6,12 @@ import { alocacao, avaliarPosicoes, calcularPosicoes, mesesDeReserva, riscoDaCar
 import { competenciaDe, hojeISO, somarMeses } from '../../core/datas'
 import { historicoMensal } from '../../core/historico'
 import { situacaoMeta } from '../../core/metas'
-import { usePreferencias } from '../../seguranca/preferencias'
+import { useAjustesConta } from '../../db/ajustesConta'
+import { atualizarCotacoes } from '../../servicos/atualizarCotacoes'
 
 /** Tudo o que o patrimônio precisa, calculado num lugar só (usado no Painel e na aba Patrimônio). */
 export function usePatrimonio() {
-  const prefs = usePreferencias()
+  const ajustes = useAjustesConta()
   const hoje = hojeISO()
   const competencia = competenciaDe(hoje)
   const operacoes = useLiveQuery(() => db.operacoes.toArray(), [])
@@ -23,7 +24,8 @@ export function usePatrimonio() {
   const recentes = useLiveQuery(() => db.lancamentos.where('competencia').between(somarMeses(competencia, -3), somarMeses(competencia, -1), true, true).toArray(), [competencia])
   const snapshots = useLiveQuery(() => db.patrimonio.orderBy('competencia').toArray(), [])
 
-  const pronto = operacoes && cotacoes && investimentos && dividas && metas && aportes && contextos && recentes && snapshots
+  useEffect(() => { void atualizarCotacoes(false) }, [operacoes?.length])
+  const pronto = ajustes && operacoes && cotacoes && investimentos && dividas && metas && aportes && contextos && recentes && snapshots
   const posicoes = pronto ? avaliarPosicoes(calcularPosicoes(operacoes), new Map(cotacoes.map((c) => [c.id, c.preco]))) : []
   const totalBolsa = posicoes.reduce((a, p) => a + p.valorAtual, 0)
   const totalOutros = investimentos?.reduce((a, i) => a + i.valorAtual, 0) ?? 0
@@ -40,7 +42,7 @@ export function usePatrimonio() {
     ...posicoes.map((p) => ({ classe: p.tipoAtivo as Classe, valor: p.valorAtual })),
     ...investimentos.map((i) => ({ classe: i.classe as Classe, valor: i.valorAtual })),
   ])
-  const risco = riscoDaCarteira(aloc, prefs.perfil)
+  const risco = riscoDaCarteira(aloc, ajustes.perfil)
 
   // reserva: liquidez diária em reserva ou renda fixa; gasto médio pessoal dos últimos 3 meses com dados (sem aportes)
   const reserva = investimentos.filter((i) => i.classe === 'reserva' || (i.classe === 'rendaFixa' && i.liquidez === 'diaria')).reduce((a, i) => a + i.valorAtual, 0)
@@ -56,7 +58,7 @@ export function usePatrimonio() {
 
   return {
     hoje, competencia, posicoes, investimentos, dividas, totalBolsa, totalOutros, totalInvestido, totalDividas,
-    liquido: totalInvestido - totalDividas, aloc, risco, perfil: prefs.perfil,
+    liquido: totalInvestido - totalDividas, aloc, risco, perfil: ajustes.perfil,
     reserva, gastoMedio, mesesReserva, situacaoReserva: situacaoReserva(mesesReserva),
     metas: metasComSituacao, snapshots, cotacoes,
   }

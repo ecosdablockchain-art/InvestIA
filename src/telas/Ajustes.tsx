@@ -12,6 +12,9 @@ import { supabase } from '../nuvem/cliente'
 import { sincronizarAgora, temPendencias, useEstadoSinc } from '../nuvem/estado'
 import { useSessao } from '../conta/sessao'
 import { procurarAtualizacao } from '../ui/Atualizacao'
+import { salvarAjustesConta, useAjustesConta } from '../db/ajustesConta'
+
+const mostrarAvisoChave = () => { void import('../ui/Aviso').then((m) => m.mostrarAviso('Chave salva na sua conta')) }
 
 const fmtHora = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
 
@@ -97,8 +100,11 @@ export function Ajustes() {
   const [mensagem, setMensagem] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
   const [confirmarApagar, setConfirmarApagar] = useState(false)
   const [textoApagar, setTextoApagar] = useState('')
-  const [chave, setChave] = useState(() => prefs.chaveCotacao)
-  const [taxa, setTaxa] = useState(() => (prefs.taxaRotativoMensal * 100).toLocaleString('pt-BR'))
+  const ajustes = useAjustesConta()
+  const [chave, setChave] = useState<string | null>(null)
+  const [taxa, setTaxa] = useState<string | null>(null)
+  const chaveMostrada = chave ?? ajustes?.chaveCotacao ?? ''
+  const taxaMostrada = taxa ?? (ajustes ? (ajustes.taxaRotativoMensal * 100).toLocaleString('pt-BR') : '')
   const arquivoRef = useRef<HTMLInputElement>(null)
   const nContextos = useLiveQuery(() => db.contextos.filter((c) => !c.arquivado).count(), [])
   const nCategorias = useLiveQuery(() => db.categorias.filter((c) => !c.arquivada).count(), [])
@@ -125,12 +131,12 @@ export function Ajustes() {
   }
 
   function salvarTaxa() {
-    const n = Number(taxa.replace(',', '.'))
+    const n = Number(taxaMostrada.replace(',', '.'))
     if (!Number.isFinite(n) || n < 0 || n > 100) {
       setMensagem({ tipo: 'erro', texto: 'Informe uma taxa entre 0 e 100% ao mês.' })
       return
     }
-    salvarPreferencias({ taxaRotativoMensal: n / 100 })
+    void salvarAjustesConta({ taxaRotativoMensal: n / 100 }); setTaxa(null)
     setMensagem({ tipo: 'ok', texto: 'Taxa do rotativo salva.' })
   }
 
@@ -197,30 +203,31 @@ export function Ajustes() {
       <Grupo titulo="Crédito" rodape="Usada quando uma fatura vence sem pagamento e vira dívida no rotativo.">
         <div className="flex items-end gap-2 p-4">
           <div className="flex-1">
-            <Campo rotulo="Taxa do rotativo (% ao mês)" inputMode="decimal" value={taxa} onChange={(e) => setTaxa(e.target.value)} />
+            <Campo rotulo="Taxa do rotativo (% ao mês)" inputMode="decimal" value={taxaMostrada} onChange={(e) => setTaxa(e.target.value)} />
           </div>
           <Botao variante="secundario" onClick={salvarTaxa}>Salvar</Botao>
         </div>
       </Grupo>
 
-      <Grupo titulo="Investimentos" rodape={prefs.fonteCotacao === 'brapi'
+      {ajustes && <Grupo titulo="Investimentos" rodape={ajustes.fonteCotacao === 'brapi'
         ? 'brapi.dev: crie uma conta grátis e copie o token em brapi.dev/dashboard. Sem token, só alguns ativos de teste funcionam.'
-        : 'Alpha Vantage: peça uma chave grátis em alphavantage.co (limite de 25 consultas por dia).'}>
+        : 'Alpha Vantage: peça uma chave grátis em alphavantage.co (limite de 25 consultas por dia).'} >
         <div className="space-y-3 p-3">
           <div>
             <p className="mb-1.5 text-sm font-medium">Seu perfil de investidor</p>
-            <Segmentado rotulo="Perfil" valor={prefs.perfil} onMudar={(perfil) => salvarPreferencias({ perfil })}
+            <Segmentado rotulo="Perfil" valor={ajustes.perfil} onMudar={(perfil) => void salvarAjustesConta({ perfil })}
               opcoes={[{ valor: 'conservador', rotulo: 'Conservador' }, { valor: 'moderado', rotulo: 'Moderado' }, { valor: 'arrojado', rotulo: 'Arrojado' }]} />
           </div>
           <div>
             <p className="mb-1.5 text-sm font-medium">Fonte das cotações</p>
-            <Segmentado rotulo="Fonte das cotações" valor={prefs.fonteCotacao} onMudar={(fonteCotacao) => salvarPreferencias({ fonteCotacao })}
+            <Segmentado rotulo="Fonte das cotações" valor={ajustes.fonteCotacao} onMudar={(fonteCotacao) => void salvarAjustesConta({ fonteCotacao })}
               opcoes={[{ valor: 'brapi', rotulo: 'brapi.dev' }, { valor: 'alphavantage', rotulo: 'Alpha Vantage' }]} />
           </div>
-          <Campo rotulo="Chave da API de cotações" type="password" autoComplete="off" value={chave} onChange={(e) => setChave(e.target.value)}
-            onBlur={() => { salvarPreferencias({ chaveCotacao: chave.trim() }) }} dica="Fica guardada só neste aparelho." />
+          <Campo rotulo="Chave da API de cotações" type="password" autoComplete="off" value={chaveMostrada} onChange={(e) => setChave(e.target.value)}
+            onBlur={() => { if (chave !== null) { void salvarAjustesConta({ chaveCotacao: chave.trim() }); setChave(null); mostrarAvisoChave() } }}
+            dica="Fica na sua conta: vale em todos os aparelhos em que você entrar." />
         </div>
-      </Grupo>
+      </Grupo>}
 
       <Grupo titulo="Aparência">
         <div className="p-3">

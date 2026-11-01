@@ -4,8 +4,8 @@ import type { Investimento, Meta, OperacaoBolsa } from '../../db/tipos'
 import { NOME_CLASSE } from '../../core/carteira'
 import { formatarBRL } from '../../core/dinheiro'
 import { formatarData, nomeCompetencia, nomeCompetenciaCurto } from '../../core/datas'
-import { buscarCotacoes } from '../../servicos/cotacoes'
-import { lerPreferencias } from '../../seguranca/preferencias'
+import { atualizarCotacoes } from '../../servicos/atualizarCotacoes'
+import { useAjustesConta } from '../../db/ajustesConta'
 import { mostrarAviso } from '../../ui/Aviso'
 import { BarrasHorizontais, GraficoLinha } from '../../ui/graficos'
 import { Botao, CardValor, Cartao as Caixa, EstadoVazio, Segmentado, Tela } from '../../ui/componentes'
@@ -95,16 +95,15 @@ function Investimentos({ d }: { d: DadosPatrimonio }) {
   const [atualizando, setAtualizando] = useState(false)
   const [falhas, setFalhas] = useState<string | null>(null)
   const operacoes = useLiveQuery(() => db.operacoes.orderBy('data').reverse().toArray(), [])
+  const ajustes = useAjustesConta()
   const ultimaCotacao = d.cotacoes.reduce((m, c) => (c.atualizadaEm > m ? c.atualizadaEm : m), '')
 
   async function atualizar() {
-    const { fonteCotacao, chaveCotacao } = lerPreferencias()
     setAtualizando(true); setFalhas(null)
     try {
-      const r = await buscarCotacoes(d.posicoes.map((p) => p.ticker), fonteCotacao, chaveCotacao)
-      const agora = new Date().toISOString()
-      await db.cotacoes.bulkPut([...r.precos].map(([id, preco]) => ({ id, preco, atualizadaEm: agora, fonte: fonteCotacao })))
-      if (r.falhas.length) setFalhas(`Sem cotação para ${r.falhas.map((f) => `${f.ticker} (${f.motivo})`).join(', ')}.${!chaveCotacao ? ' Cadastre sua chave em Ajustes › Investimentos.' : ''}`)
+      const r = await atualizarCotacoes(true)
+      if (!r) return
+      if (r.falhas.length) setFalhas(`Sem cotação para ${r.falhas.map((f) => `${f.ticker} (${f.motivo})`).join(', ')}.${!ajustes?.chaveCotacao ? ' Cadastre sua chave em Ajustes › Investimentos.' : ''}`)
       if (r.precos.size) mostrarAviso(`${r.precos.size} ${r.precos.size === 1 ? 'cotação atualizada' : 'cotações atualizadas'}`)
     } catch {
       setFalhas('Não foi possível buscar as cotações. Verifique a internet.')

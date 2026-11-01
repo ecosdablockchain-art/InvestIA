@@ -3,25 +3,16 @@ import { useSyncExternalStore } from 'react'
 export interface Preferencias {
   bloqueioAtivo: boolean
   credencialId: string | null // id da passkey (base64url) — não é segredo
-  taxaRotativoMensal: number // fração, ex.: 0,15 = 15% a.m.
   tema: 'sistema' | 'claro' | 'escuro'
   visaoPainel: string // 'tudo' ou id do contexto
-  perfil: 'conservador' | 'moderado' | 'arrojado'
-  fonteCotacao: 'brapi' | 'alphavantage'
-  /** Chave da API de cotações: fica só neste aparelho (não vai para a nuvem). */
-  chaveCotacao: string
 }
 
 const CHAVE = 'financas360:preferencias'
 const PADRAO: Preferencias = {
   bloqueioAtivo: false,
   credencialId: null,
-  taxaRotativoMensal: 0.15,
   tema: 'sistema',
   visaoPainel: 'pessoal',
-  perfil: 'moderado',
-  fonteCotacao: 'brapi',
-  chaveCotacao: '',
 }
 
 let atual: Preferencias = carregar()

@@ -1,6 +1,6 @@
 import Dexie, { type DBCore, type DBCoreMutateRequest, type EntityTable } from 'dexie'
 import type {
-  Base, CasaAcerto, CasaDespesa, CasaMembro, Cartao, Categoria, CompraParcelada, Contexto, Cotacao,
+  AjustesConta, Base, CasaAcerto, CasaDespesa, CasaMembro, Cartao, Categoria, CompraParcelada, Contexto, Cotacao,
   Divida, Fatura, Importacao, Investimento, Lancamento, Meta, OperacaoBolsa, PatrimonioMensal,
   Recorrencia, RegraCategoria,
 } from './tipos'
@@ -28,6 +28,7 @@ export class BancoFinancas extends Dexie {
   _apagados!: EntityTable<Apagado, 'chave'>
   /** Cursores da sincronização. */
   _meta!: EntityTable<{ chave: string; valor: string }, 'chave'>
+  ajustesConta!: EntityTable<AjustesConta, 'id'>
 
   constructor(nome = 'financas360') {
     super(nome)
@@ -59,6 +60,8 @@ export class BancoFinancas extends Dexie {
       _apagados: 'chave, tabela',
       _meta: 'chave',
     })
+    // v3: ajustes da conta (sincronizados)
+    this.version(3).stores({ ajustesConta: 'id' })
     this.use({ stack: 'dbcore', name: 'marcar-alteracoes', create: (down) => marcarAlteracoes(down, this) })
   }
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { abrirBancoDoUsuario, db } from '../db/banco'
 import { garantirDadosIniciais } from '../db/padroes'
+import { trazerAjustesDoAparelho } from '../db/ajustesConta'
 import { useRota } from '../rotas'
 import { nuvemConfigurada, supabase } from '../nuvem/cliente'
 import { servidorSupabase } from '../nuvem/supabaseServidor'
@@ -72,6 +73,7 @@ function AreaLogada({ usuario }: { usuario: Usuario }) {
         if (legado) { if (ativo) setPreparo({ tipo: 'legado', legado }); return }
       }
       await garantirDadosIniciais(banco)
+      await trazerAjustesDoAparelho(banco)
       if (!ativo) return
       parar = iniciarSincronizacao(banco, servidor)
       setPreparo({ tipo: 'pronto' })
