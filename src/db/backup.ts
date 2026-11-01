@@ -9,9 +9,15 @@ export interface Backup {
   tabelas: Record<string, unknown[]>
 }
 
+function semCamposInternos(r: unknown): unknown {
+  if (!r || typeof r !== 'object') return r
+  const { _modificadoEm: _, _sincronizadoEm: __, ...resto } = r as Record<string, unknown>
+  return resto
+}
+
 export async function exportarBackup(banco: BancoFinancas): Promise<Backup> {
   const tabelas: Record<string, unknown[]> = {}
-  for (const t of banco.tables) tabelas[t.name] = await t.toArray()
+  for (const t of banco.tabelasDeDados) tabelas[t.name] = (await t.toArray()).map(semCamposInternos)
   return { app: 'financas-360', versao: VERSAO_BACKUP, exportadoEm: new Date().toISOString(), tabelas }
 }
 
@@ -31,8 +37,8 @@ export function validarBackup(dados: unknown): Backup {
 export async function restaurarBackup(banco: BancoFinancas, dados: unknown): Promise<number> {
   const backup = validarBackup(dados)
   let total = 0
-  await banco.transaction('rw', banco.tables, async () => {
-    for (const t of banco.tables) {
+  await banco.transaction('rw', banco.tabelasDeDados, async () => {
+    for (const t of banco.tabelasDeDados) {
       await t.clear()
       const linhas = backup.tabelas[t.name] ?? []
       await t.bulkAdd(linhas)
@@ -43,8 +49,8 @@ export async function restaurarBackup(banco: BancoFinancas, dados: unknown): Pro
 }
 
 export async function apagarTudo(banco: BancoFinancas): Promise<void> {
-  await banco.transaction('rw', banco.tables, async () => {
-    for (const t of banco.tables) await t.clear()
+  await banco.transaction('rw', banco.tabelasDeDados, async () => {
+    for (const t of banco.tabelasDeDados) await t.clear()
   })
 }
 

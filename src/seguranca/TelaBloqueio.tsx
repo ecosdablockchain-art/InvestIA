@@ -32,7 +32,7 @@ export function TelaBloqueio({ credencialId, onDesbloquear }: { credencialId: st
         <p className="mt-1 text-slate-600 dark:text-slate-400">Seus dados estão protegidos.</p>
       </div>
       <Botao onClick={desbloquear} disabled={verificando} className="w-full max-w-xs">
-        {verificando ? 'Verificando…' : 'Desbloquear com Face ID'}
+        {verificando ? 'Verificando…' : 'Desbloquear'}
       </Botao>
       <p role="alert" className="min-h-5 text-sm text-red-600 dark:text-red-400">{erro}</p>
       <button type="button" className="text-sm text-marca-600 underline dark:text-marca-100" onClick={() => setAjuda(!ajuda)} aria-expanded={ajuda}>
@@ -40,8 +40,7 @@ export function TelaBloqueio({ credencialId, onDesbloquear }: { credencialId: st
       </button>
       {ajuda && (
         <p className="max-w-sm text-sm text-slate-600 dark:text-slate-400">
-          O bloqueio usa uma chave guardada só neste aparelho. Se ela foi apagada, a única saída é apagar os dados deste site
-          (Ajustes do iPhone › Apps › Safari › Avançado › Dados dos Sites) e restaurar seu último backup.
+          O bloqueio usa uma chave guardada só neste aparelho. Se ela foi apagada, limpe os dados deste site no navegador e entre de novo com seu e-mail e senha: seus dados estão na sua conta.
         </p>
       )}
     </main>

@@ -65,7 +65,11 @@ describe('apagar e desfazer', () => {
     const apagado = await apagarLancamento(banco, l.id)
     expect(await banco.lancamentos.count()).toBe(0)
     if (apagado) await restaurarLancamento(banco, apagado)
-    expect(await banco.lancamentos.get(l.id)).toEqual(l)
+    const { _modificadoEm: a, ...restaurado } = (await banco.lancamentos.get(l.id)) as typeof l & { _modificadoEm?: string }
+    const { _modificadoEm: b, ...original } = l as typeof l & { _modificadoEm?: string }
+    expect(restaurado).toEqual(original)
+    expect(typeof a).toBe("string")
+    void b
   })
 })
 

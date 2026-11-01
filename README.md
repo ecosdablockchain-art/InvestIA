@@ -1,6 +1,8 @@
 # Finanças 360
 
-Finanças pessoais num site que se instala no iPhone (PWA). É privado (os dados ficam só no aparelho), funciona offline e tem bloqueio com Face ID.
+Finanças pessoais num site que funciona em qualquer aparelho (iPhone, Android, computador) e pode ser instalado na tela inicial (PWA). Cada pessoa tem a sua conta (e-mail e senha); os dados ficam na nuvem (Supabase), protegidos por regras que impedem um usuário de ver os dados de outro, com cópia no aparelho para funcionar offline.
+
+Configuração do servidor: veja `supabase/CONFIGURAR.md`.
 
 ## Rodar no computador
 
@@ -36,6 +38,7 @@ src/
 - Datas como `AAAA-MM-DD` no fuso America/Sao_Paulo. Mês de competência como `AAAAMM`.
 - Nada de número de cartão, CVV ou senha de banco. Arquivos importados são lidos em memória e descartados.
 - Chaves de API são digitadas nos Ajustes e ficam só no aparelho.
+- Sincronização: cada registro vai para a tabela `registros` do Supabase como JSON; vence a alteração mais recente. Testes do SQL: `supabase/teste-local.sql` (Postgres local simulando o Supabase).
 
 ## Privacidade e limites
 

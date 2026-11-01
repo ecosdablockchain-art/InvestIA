@@ -9,13 +9,13 @@ import { Mes } from './telas/mes/Mes'
 import { Importar } from './telas/importar/Importar'
 import { AjustesRegras } from './telas/AjustesRegras'
 import { Aviso } from './ui/Aviso'
-import { Ajustes, Instalar } from './telas/Ajustes'
+import { Ajustes, ExcluirConta, Instalar } from './telas/Ajustes'
 import { AjustesCategorias, AjustesContextos } from './telas/AjustesListas'
 
 /** Tempo fora do app antes de pedir Face ID de novo. */
 const TOLERANCIA_MS = 30_000
 
-function useTema(tema: 'sistema' | 'claro' | 'escuro') {
+export function useTema(tema: 'sistema' | 'claro' | 'escuro') {
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     const aplicar = () => document.documentElement.classList.toggle('dark', tema === 'escuro' || (tema === 'sistema' && mq.matches))
@@ -32,7 +32,6 @@ export function App() {
   const [desbloqueado, setDesbloqueado] = useState(false)
   const [oculto, setOculto] = useState(false)
   const saiuEm = useRef<number | null>(null)
-  useTema(prefs.tema)
 
   useEffect(() => {
     if (!bloqueioLigado) return
@@ -70,6 +69,7 @@ export function App() {
     case 'ajustes/contextos': tela = <AjustesContextos />; break
     case 'ajustes/categorias': tela = <AjustesCategorias />; break
     case 'ajustes/regras': tela = <AjustesRegras />; break
+    case 'ajustes/excluir-conta': tela = <ExcluirConta />; break
     case 'ajustes/instalar': tela = <Instalar />; break
     default: tela = <Painel />
   }
