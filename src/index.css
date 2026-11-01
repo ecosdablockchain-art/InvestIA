@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  --color-marca-50: #eef6ff;
+  --color-marca-100: #d9eaff;
+  --color-marca-500: #2f6fed;
+  --color-marca-600: #1f5bd6;
+  --color-marca-700: #1847ab;
+  --color-fundo: #f3f5f9;
+  --color-fundo-escuro: #0b1220;
+  --color-superficie-escuro: #141d2f;
+  --color-borda-escuro: #24304a;
+  --color-positivo: #0f7a47;
+  --color-positivo-escuro: #4ade80;
+  --color-negativo: #c0262d;
+  --color-negativo-escuro: #f87171;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  @apply bg-fundo text-slate-900 antialiased dark:bg-fundo-escuro dark:text-slate-100;
+  overscroll-behavior-y: none;
+}
+
+.numeros {
+  font-variant-numeric: tabular-nums;
+}
+
+.pt-seguro { padding-top: max(env(safe-area-inset-top), 0.75rem); }
+.pb-seguro { padding-bottom: env(safe-area-inset-bottom); }
+
+:focus-visible {
+  outline: 3px solid var(--color-marca-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
