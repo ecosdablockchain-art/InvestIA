@@ -11,7 +11,7 @@ export interface LinhaImportada {
 
 export interface ResultadoLeitura {
   linhas: LinhaImportada[]
-  formato: 'ofx' | 'csv' | 'texto'
+  formato: 'ofx' | 'csv' | 'texto' | 'pdf' | 'imagem'
   /** Fatura de cartão: os valores positivos costumam ser compras. */
   ehCartao: boolean
   avisos: string[]

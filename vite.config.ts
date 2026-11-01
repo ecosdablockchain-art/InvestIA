@@ -10,6 +10,17 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        // OCR é grande: fica fora da instalação e entra no cache no primeiro uso
+        globPatterns: ['**/*.{js,mjs,css,html,svg,png,webmanifest}'],
+        globIgnores: ['**/ocr/**'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        runtimeCaching: [{
+          urlPattern: ({ url }) => url.pathname.includes('/ocr/'),
+          handler: 'CacheFirst',
+          options: { cacheName: 'ocr', expiration: { maxEntries: 10 } },
+        }],
+      },
       includeAssets: ['icone.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Finanças 360',

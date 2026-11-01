@@ -12,6 +12,7 @@ import type { ResultadoLeitura } from '../../core/importacao/tipos'
 import { mostrarAviso } from '../../ui/Aviso'
 import { Botao, Cartao, Grupo, Tela } from '../../ui/componentes'
 import { Mapear } from './Mapear'
+import type { SenhaPdfErro } from '../../servicos/pdf'
 import { Conferir } from './Conferir'
 
 export type Etapa =
@@ -27,24 +28,87 @@ export function Importar() {
   const [colando, setColando] = useState(false)
   const [texto, setTexto] = useState('')
   const [erro, setErro] = useState<string | null>(null)
+  const [progresso, setProgresso] = useState<{ mensagem: string; fracao?: number } | null>(null)
+  const [pdfComSenha, setPdfComSenha] = useState<{ nome: string; bytes: Uint8Array; incorreta: boolean } | null>(null)
+  const [senha, setSenha] = useState('')
   const arquivoRef = useRef<HTMLInputElement>(null)
   const historico = useLiveQuery(() => db.importacoes.orderBy('data').reverse().limit(20).toArray(), [])
 
-  /** O arquivo é lido em memória e descartado: só os lançamentos confirmados são salvos. */
-  async function lerArquivo(arquivo: File) {
+  /** Os arquivos são lidos em memória e descartados: só os lançamentos confirmados são salvos. */
+  async function lerArquivos(arquivos: File[]) {
     setErro(null)
-    const nome = arquivo.name
-    if (/\.pdf$/i.test(nome) || arquivo.type === 'application/pdf') {
-      setErro('PDF chega na fase 5. Por enquanto, use OFX ou CSV, ou copie o texto da fatura e cole aqui.')
+    const imagens = arquivos.filter((f) => f.type.startsWith('image/') || /\.(jpe?g|png|heic|heif|webp)$/i.test(f.name))
+    if (imagens.length > 0) {
+      if (imagens.length !== arquivos.length) { setErro('Escolha só imagens, ou um arquivo de cada vez.'); return }
+      await lerImagens(imagens)
       return
     }
+    const arquivo = arquivos[0]
+    if (!arquivo) return
+    const nome = arquivo.name
     if (/\.(xlsx?|ods)$/i.test(nome)) {
       setErro('Planilhas do Excel ainda não são lidas. Abra o arquivo no Numbers ou no Google Planilhas e exporte como CSV.')
       return
     }
-    if (arquivo.size > 5_000_000) { setErro('Arquivo grande demais (máximo 5 MB).'); return }
-    const conteudo = decodificar(new Uint8Array(await arquivo.arrayBuffer()))
-    abrir(nome, conteudo)
+    if (arquivo.size > 15_000_000) { setErro('Arquivo grande demais (máximo 15 MB).'); return }
+    const bytes = new Uint8Array(await arquivo.arrayBuffer())
+    if (/\.pdf$/i.test(nome) || arquivo.type === 'application/pdf') {
+      await lerPdfArquivo(nome, bytes)
+      return
+    }
+    abrir(nome, decodificar(bytes))
+  }
+
+  async function lerPdfArquivo(nome: string, bytes: Uint8Array, senhaInformada?: string) {
+    setErro(null)
+    setProgresso({ mensagem: 'Abrindo o PDF…' })
+    try {
+      const { lerPdf, paginasComoImagens } = await import('../../servicos/pdf')
+      const pdf = await lerPdf(bytes, senhaInformada)
+      setPdfComSenha(null)
+      setSenha('')
+      let texto = pdf.linhas.join('\n')
+      if (!pdf.temTexto) {
+        setProgresso({ mensagem: 'PDF escaneado: lendo o texto das páginas…', fracao: 0 })
+        const { reconhecerTexto } = await import('../../servicos/ocr')
+        texto = await reconhecerTexto(await paginasComoImagens(pdf.documento), (fracao) => setProgresso({ mensagem: 'Lendo o texto das páginas…', fracao }))
+      }
+      await pdf.fechar()
+      abrirTextoLido(nome, texto, pdf.temTexto ? 'pdf' : 'imagem')
+    } catch (e) {
+      if (e instanceof Error && e.name === 'SenhaPdfErro') {
+        setPdfComSenha({ nome, bytes, incorreta: (e as SenhaPdfErro).incorreta })
+      } else {
+        setErro(e instanceof Error ? e.message : 'Não consegui ler este PDF.')
+      }
+    } finally {
+      setProgresso(null)
+    }
+  }
+
+  async function lerImagens(imagens: File[]) {
+    setProgresso({ mensagem: 'Preparando a leitura da imagem…', fracao: 0 })
+    try {
+      const { reconhecerTexto } = await import('../../servicos/ocr')
+      const texto = await reconhecerTexto(imagens, (fracao) => setProgresso({ mensagem: imagens.length > 1 ? `Lendo ${imagens.length} imagens…` : 'Lendo o texto da imagem…', fracao }))
+      abrirTextoLido(imagens.length > 1 ? `${imagens.length} imagens` : imagens[0]?.name ?? 'Imagem', texto, 'imagem')
+    } catch {
+      setErro('Não consegui ler a imagem. Na primeira vez é preciso internet para baixar o leitor de texto (cerca de 5 MB).')
+    } finally {
+      setProgresso(null)
+    }
+  }
+
+  /** Texto vindo de PDF ou OCR: tenta reconhecer; se nada sair, joga no campo de colar para ajuste. */
+  function abrirTextoLido(nome: string, texto: string, formato: 'pdf' | 'imagem') {
+    const leitura = lerTexto(texto, hojeISO())
+    if (leitura.linhas.length > 0) {
+      setEtapa({ tipo: 'conferir', nome, leitura: { ...leitura, formato } })
+      return
+    }
+    setTexto(texto.trim())
+    setColando(true)
+    setErro('Não reconheci lançamentos nesse arquivo. Coloquei o texto lido no campo abaixo: ajuste as linhas (data no início, valor no fim) e toque em "Ler texto".')
   }
 
   function abrir(nome: string, conteudo: string) {
@@ -113,13 +177,36 @@ export function Importar() {
       )}
 
       <Cartao>
-        <p className="text-sm text-slate-600 dark:text-slate-400">Extrato da conta ou fatura do cartão. Você confere tudo antes de lançar, e o arquivo não fica guardado.</p>
+        <p className="text-sm text-slate-600 dark:text-slate-400">Extrato da conta ou fatura do cartão em <strong>OFX, CSV, PDF</strong> ou <strong>prints/fotos</strong> (pode escolher várias imagens). Você confere tudo antes de lançar, e o arquivo não fica guardado.</p>
         <div className="mt-3 grid gap-2">
-          <Botao onClick={() => arquivoRef.current?.click()}>Escolher arquivo (OFX ou CSV)</Botao>
+          <Botao onClick={() => arquivoRef.current?.click()} disabled={!!progresso}>Escolher arquivo</Botao>
           <Botao variante="secundario" onClick={() => setColando(!colando)} aria-expanded={colando}>Colar texto</Botao>
         </div>
-        <input ref={arquivoRef} type="file" className="hidden" accept=".ofx,.qfx,.csv,.txt,text/csv,text/plain,application/x-ofx,application/vnd.intu.qfx,.pdf,.xls,.xlsx"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) void lerArquivo(f); e.target.value = '' }} />
+        <input ref={arquivoRef} type="file" multiple className="hidden"
+          accept=".ofx,.qfx,.csv,.txt,.pdf,.xls,.xlsx,text/csv,text/plain,application/pdf,application/x-ofx,image/*"
+          onChange={(e) => { const fs = [...(e.target.files ?? [])]; if (fs.length) void lerArquivos(fs); e.target.value = '' }} />
+        {progresso && (
+          <div className="mt-3" role="status" aria-live="polite">
+            <p className="text-sm">{progresso.mensagem}{progresso.fracao !== undefined ? ` ${Math.round(progresso.fracao * 100)}%` : ''}</p>
+            <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+              <div className={`h-full rounded-full bg-marca-600 ${progresso.fracao === undefined ? 'w-1/3 animate-pulse' : ''}`}
+                style={progresso.fracao !== undefined ? { width: `${Math.max(4, progresso.fracao * 100)}%` } : undefined} />
+            </div>
+          </div>
+        )}
+        {pdfComSenha && (
+          <form className="mt-3 space-y-2 rounded-xl bg-slate-100 p-3 dark:bg-slate-800"
+            onSubmit={(e) => { e.preventDefault(); const s = senha; setSenha(''); void lerPdfArquivo(pdfComSenha.nome, pdfComSenha.bytes, s) }}>
+            <label htmlFor="senha-pdf" className="block text-sm font-medium">{pdfComSenha.incorreta ? 'Senha incorreta. Tente de novo:' : `"${pdfComSenha.nome}" tem senha`}</label>
+            <input id="senha-pdf" type="password" autoComplete="off" autoFocus value={senha} onChange={(e) => setSenha(e.target.value)}
+              className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 dark:border-borda-escuro dark:bg-slate-900" />
+            <p className="text-xs text-slate-500 dark:text-slate-400">Faturas costumam usar parte do CPF. A senha é usada só para abrir o arquivo agora e não fica guardada.</p>
+            <div className="flex gap-2">
+              <Botao variante="secundario" onClick={() => { setPdfComSenha(null); setSenha('') }}>Cancelar</Botao>
+              <Botao type="submit" className="flex-1" disabled={!senha}>Abrir PDF</Botao>
+            </div>
+          </form>
+        )}
         {colando && (
           <div className="mt-3 space-y-2">
             <label htmlFor="texto-colado" className="block text-sm font-medium">Cole as linhas do extrato ou da fatura</label>
@@ -140,7 +227,9 @@ export function Importar() {
           <li>Abra o <strong>extrato da conta corrente</strong> e escolha o período.</li>
           <li>Procure a opção de <strong>salvar/exportar</strong> e prefira <strong>OFX</strong> (às vezes aparece como "Money"). É o formato mais preciso.</li>
           <li>Se só houver Excel, abra no Numbers ou no Google Planilhas e exporte como <strong>CSV</strong>.</li>
-          <li>Salve no app Arquivos do iPhone e escolha aqui. A fatura do cartão em PDF chega na fase 5. Até lá, dá para copiar o texto e colar.</li>
+          <li>Salve no app Arquivos do iPhone e escolha aqui.</li>
+          <li><strong>Fatura do cartão:</strong> o PDF que chega por e-mail ou fica no app funciona direto. Se tiver senha, o app pede na hora.</li>
+          <li><strong>Prints do app:</strong> escolha uma ou várias imagens do extrato. Confira bem: leitura de imagem pode errar.</li>
         </ol>
       </details>
 

@@ -197,3 +197,24 @@ describe('análise completa do OFX Santander', () => {
     expect(inverterSinais([linha('a', 100)])[0]?.valor).toBe(-100)
   })
 })
+
+describe('texto de prints de app', () => {
+  it('usa cabeçalhos de dia e sinais + / −', async () => {
+    const { lerTexto: ler } = await import('./texto')
+    const r = ler(['Hoje', 'IFOOD *RESTAURANTE - R$ 45,90', 'Pix recebido Maria + R$ 350,00', 'Ontem', 'Uber −R$ 18,40',
+      '05 de novembro', 'Supermercado Exemplo -R$ 312,47', 'Saldo disponível R$ 1.234,56'].join('\n'), '2026-11-20')
+    expect(r.linhas.map((l) => [l.data, l.descricao, l.valor])).toEqual([
+      ['2026-11-20', 'IFOOD *RESTAURANTE', -4590],
+      ['2026-11-20', 'Pix recebido Maria', 35000],
+      ['2026-11-19', 'Uber', -1840],
+      ['2026-11-05', 'Supermercado Exemplo', -31247],
+    ])
+  })
+  it('cabeçalho de data por extenso', async () => {
+    const { lerDataCabecalho } = await import('./texto')
+    expect(lerDataCabecalho('Ter, 05 nov', '2026-11-20')).toBe('2026-11-05')
+    expect(lerDataCabecalho('28 de dezembro', '2026-01-10')).toBe('2025-12-28')
+    expect(lerDataCabecalho('05 de novembro de 2025', '2026-11-20')).toBe('2025-11-05')
+    expect(lerDataCabecalho('IFOOD 45,90', '2026-11-20')).toBeNull()
+  })
+})

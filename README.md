@@ -48,7 +48,7 @@ src/
 2. ✅ Lançamentos, orçamento do mês, limites, recorrentes
 3. ✅ Painel completo, histórico e previsão de 6 meses
 4. ✅ Importação OFX/CSV + conferência + regras + desfazer
-5. Importação PDF e foto (OCR)
+5. ✅ Importação PDF (com senha) e foto (OCR)
 6. Cartões, faturas, parcelados, dívidas e simulador
 7. Investimentos, cotações, reserva, metas, patrimônio
 8. Casa compartilhada

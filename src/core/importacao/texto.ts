@@ -1,35 +1,96 @@
 import { lerValor } from '../dinheiro'
-import type { DataISO } from '../datas'
+import { ehDataISO, type DataISO } from '../datas'
+import { normalizar } from '../busca'
 import { lerData } from './datas'
 import type { LinhaImportada, ResultadoLeitura } from './tipos'
 
-const VALOR_NO_FIM = /(-?\s*R?\$?\s*-?\(?\d{1,3}(?:\.\d{3})*,\d{2}\)?-?|-?\s*R?\$?\s*-?\d+,\d{2}-?)\s*([DC])?\s*$/i
+const NUM = String.raw`\(?[-+−]?\s*(?:R\$|US\$)?\s*[-+−]?\s*\d{1,3}(?:\.\d{3})*,\d{2}\)?(?:\s*-)?|\(?[-+−]?\s*(?:R\$|US\$)?\s*[-+−]?\s*\d+,\d{2}\)?(?:\s*-)?`
+/** Um ou dois valores no fim da linha (ex.: valor + saldo, ou R$ + US$), com D/C opcional. */
+const VALORES_NO_FIM = new RegExp(String.raw`(${NUM})\s*([DC])?(?:\s+(${NUM})\s*[DC]?)?\s*$`, 'i')
+
+const MESES: Record<string, number> = {
+  jan: 1, janeiro: 1, fev: 2, fevereiro: 2, mar: 3, marco: 3, abr: 4, abril: 4, mai: 5, maio: 5, jun: 6, junho: 6,
+  jul: 7, julho: 7, ago: 8, agosto: 8, set: 9, setembro: 9, out: 10, outubro: 10, nov: 11, novembro: 11, dez: 12, dezembro: 12,
+}
+
+/** Linhas de resumo que não são transações. */
+const RESUMO = /^(saldo|total|subtotal|limite|pagamento minimo|valor (total|minimo|do documento)|fatura (atual|anterior|fechada|aberta)|vencimento|melhor data|encargos (rotativo|financiamento)|cet|iof (rotativo|financiamento)|juros (rotativo|financiamento))\b/
 
 /**
- * Lê texto colado (do app do banco, e-mail ou fatura): cada linha com data no início e valor no fim.
+ * "05 de novembro", "05 nov 2026", "ter, 05 nov", "hoje", "ontem" → data, quando a linha é só isso
+ * (cabeçalho de dia em prints de app de banco).
+ */
+export function lerDataCabecalho(linha: string, hoje: DataISO): DataISO | null {
+  const n = normalizar(linha).replace(/[.,]/g, ' ').replace(/\s+/g, ' ').trim()
+  if (n === 'hoje') return hoje
+  if (n === 'ontem') return deslocar(hoje, -1)
+  const soData = lerData(n, hoje)
+  if (soData && /^\d{1,2}[/.-]\d{1,2}([/.-]\d{2,4})?$/.test(n)) return soData
+  const m = /^(?:(?:seg|ter|qua|qui|sex|sab|dom)[a-z-]*\s+)?(\d{1,2})\s+(?:de\s+)?([a-z]+)(?:\s+(?:de\s+)?(\d{4}))?$/.exec(n)
+  if (!m) return null
+  const mes = MESES[m[2] ?? '']
+  if (!mes) return null
+  const dia = Number(m[1])
+  const montar = (ano: number) => `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
+  if (m[3]) { const d = montar(Number(m[3])); return ehDataISO(d) ? d : null }
+  const anoHoje = Number(hoje.slice(0, 4))
+  const d = montar(anoHoje)
+  if (!ehDataISO(d)) return null
+  return d <= hoje ? d : montar(anoHoje - 1)
+}
+
+function deslocar(d: DataISO, dias: number): DataISO {
+  return new Date(Date.parse(`${d}T12:00:00Z`) + dias * 86_400_000).toISOString().slice(0, 10)
+}
+
+/**
+ * Lê texto colado, de PDF ou de foto: cada linha com data no início e valor no fim.
  * Ex.: "05/11 IFOOD *RESTAURANTE 45,90" ou "05/11/2026 PIX RECEBIDO JOAO 1.200,00 C".
- * Sem sinal, o valor é tratado como gasto (padrão de faturas).
+ * - Dois valores no fim (valor + saldo, ou R$ + US$): usa o primeiro.
+ * - Linhas sem data usam o último cabeçalho de dia visto ("05 de novembro", "Hoje").
+ * - Sem sinal, o valor é tratado como gasto, salvo palavras como "recebido" ou "estorno".
  */
 export function lerTexto(texto: string, hoje: DataISO): ResultadoLeitura {
-  const linhas: LinhaImportada[] = []
+  interface Bruta { data: DataISO; descricao: string; abs: number; negativo: boolean; dc: 'D' | 'C' | null }
+  const brutas: Bruta[] = []
   let ignoradas = 0
-  for (const bruta of texto.split(/\r?\n/)) {
-    const l = bruta.replace(/\t/g, ' ').trim()
+  let dataAtual: DataISO | null = null
+  for (const original of texto.split(/\r?\n/)) {
+    const l = original.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim()
     if (!l) continue
+    const cabecalho = lerDataCabecalho(l, hoje)
+    if (cabecalho) { dataAtual = cabecalho; continue }
+
     const mData = /^(\d{1,2}[/.-]\d{1,2}(?:[/.-]\d{2,4})?)\s+/.exec(l)
-    const mValor = VALOR_NO_FIM.exec(l)
-    const data = mData ? lerData(mData[1] ?? '', hoje) : null
-    if (!mData || !mValor || !data) { ignoradas++; continue }
-    const bruto = (mValor[1] ?? '').replace(/\s/g, '')
-    const v = lerValor(bruto)
+    const mValor = VALORES_NO_FIM.exec(l)
+    const dataLinha = mData ? lerData(mData[1] ?? '', hoje) : null
+    const data = dataLinha ?? dataAtual
+    if (!mValor || !data) { ignoradas++; continue }
+    const inicio = dataLinha && mData ? mData[0].length : 0
+    const descricao = l.slice(inicio, l.length - mValor[0].length).replace(/\s+/g, ' ').replace(/[\s:–-]+$/, '').trim()
+    if (!descricao || RESUMO.test(normalizar(descricao))) { ignoradas++; continue }
+
+    const bruto = (mValor[1] ?? '').replace(/\s/g, '').replace(/US\$/i, '').replace(/−/g, '-')
+    const mais = bruto.includes('+')
+    const v = lerValor(bruto.replace('+', ''))
     if (v === null || v === 0) { ignoradas++; continue }
-    const dc = mValor[2]?.toUpperCase()
-    const comSinal = /^-|-$|^\(|^R\$-/.test(bruto)
-    const descricao = l.slice(mData[0].length, l.length - mValor[0].length).replace(/\s+/g, ' ').trim() || 'Sem descrição'
-    const pareceEntrada = /\b(recebid[oa]|credito|deposito|estorno|reembolso|salario)\b/i.test(descricao.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
-    const valor = dc === 'C' ? Math.abs(v) : dc === 'D' ? -Math.abs(v) : comSinal ? v : pareceEntrada ? Math.abs(v) : -Math.abs(v)
-    linhas.push({ data, descricao, valor, idExterno: null })
+    const dc = (mValor[2]?.toUpperCase() ?? (mais ? 'C' : null)) as 'D' | 'C' | null
+    brutas.push({ data, descricao, abs: Math.abs(v), negativo: v < 0, dc })
   }
-  const avisos = ignoradas > 0 ? [`${ignoradas} ${ignoradas === 1 ? 'linha não foi reconhecida' : 'linhas não foram reconhecidas'} (precisa ter data no início e valor no fim).`] : []
-  return { linhas, formato: 'texto', ehCartao: false, avisos }
+
+  // Fatura: a maioria vem sem sinal (compras) e o "-" marca crédito.
+  // Extrato: a maioria vem com "-" (saídas) e sem sinal é entrada.
+  const semSinal = brutas.filter((b) => !b.dc && !b.negativo).length
+  const negativos = brutas.filter((b) => !b.dc && b.negativo).length
+  const ehFatura = semSinal >= negativos
+  const linhas: LinhaImportada[] = brutas.map((b) => {
+    const pareceEntrada = /\b(recebid[oa]|credito|deposito|estorno|reembolso|salario|cashback)\b/.test(normalizar(b.descricao))
+    let entrada: boolean
+    if (b.dc) entrada = b.dc === 'C'
+    else if (ehFatura) entrada = b.negativo || pareceEntrada
+    else entrada = !b.negativo
+    return { data: b.data, descricao: b.descricao, valor: entrada ? b.abs : -b.abs, idExterno: null }
+  })
+  const avisos = ignoradas > 0 ? [`${ignoradas} ${ignoradas === 1 ? 'linha não foi reconhecida' : 'linhas não foram reconhecidas'} como lançamento (cabeçalhos, totais ou sem data/valor).`] : []
+  return { linhas, formato: 'texto', ehCartao: ehFatura && negativos > 0, avisos }
 }

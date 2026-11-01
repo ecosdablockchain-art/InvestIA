@@ -114,6 +114,11 @@ export function Conferir({ nome, leitura, onCancelar, onLancado }: {
 
   return (
     <Tela titulo="Conferir" subtitulo={`${nome}${per ? ` · ${formatarData(per.de)} a ${formatarData(per.ate)}` : ''}`}>
+      {(leitura.formato === 'pdf' || leitura.formato === 'imagem') && (
+        <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+          {leitura.formato === 'imagem' ? 'Lido de imagem: confira datas, descrições e valores com atenção, a leitura pode errar.' : 'Lido de PDF: confira se as datas e os valores batem com o documento.'}
+        </p>
+      )}
       {leitura.avisos.map((a) => <p key={a} className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">{a}</p>)}
 
       {(desmarcadasAuto.fatura + desmarcadasAuto.transf + desmarcadasAuto.dup) > 0 && (
