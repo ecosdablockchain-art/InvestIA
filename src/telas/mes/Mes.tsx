@@ -81,7 +81,7 @@ export function Mes({ secaoInicial = 'lancamentos', abrirNovo = false }: { secao
       </button>
       )}
 
-      <FolhaLancamento pedido={pedido} base={base} competencia={competencia} contextoPadrao={contextoPadrao} onFechar={() => { setPedido(null); if (window.location.hash === '#/mes/novo') history.replaceState(null, '', '#/mes') }} />
+      <FolhaLancamento pedido={pedido} base={base} competencia={competencia} contextoPadrao={contextoPadrao} onFechar={() => { setPedido(null); if (window.location.hash === '#/mes/novo') window.location.hash = '#/mes' }} />
     </Tela>
   )
 }

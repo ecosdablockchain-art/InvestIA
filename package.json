@@ -12,6 +12,7 @@
     "gerar-funcao": "node scripts/gerar-funcao.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
     "@supabase/supabase-js": "^2.118.0",
     "dexie": "^4.4.7",
     "dexie-react-hooks": "^4.4.0",

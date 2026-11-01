@@ -19,7 +19,7 @@ export async function exportarBackup(banco: BancoFinancas): Promise<Backup> {
   const tabelas: Record<string, unknown[]> = {}
   for (const t of banco.tabelasDeDados) tabelas[t.name] = (await t.toArray()).map(semCamposInternos)
   // a chave da API de cotações não vai para o arquivo de backup
-  tabelas.ajustesConta = (tabelas.ajustesConta ?? []).map((a) => ({ ...(a as object), chaveCotacao: '' }))
+  tabelas.ajustesConta = (tabelas.ajustesConta ?? []).map((a) => ({ ...(a as object), chaveCotacao: '', chaveClaude: '' }))
   return { app: 'financas-360', versao: VERSAO_BACKUP, exportadoEm: new Date().toISOString(), tabelas }
 }
 

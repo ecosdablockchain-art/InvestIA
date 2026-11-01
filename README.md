@@ -55,4 +55,4 @@ src/
 7. ✅ Investimentos, cotações, reserva, metas, patrimônio
 8. Casa compartilhada: fora do plano
 9. ✅ Notificações (Web Push via Supabase; ver supabase/NOTIFICACOES.md)
-10. Consultor com IA e camada de jogo
+10. ✅ Consultor com IA (Claude, resumo agregado) e camada de jogo (nível, missões, conquistas)
