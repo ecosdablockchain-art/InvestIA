@@ -58,7 +58,10 @@ export function App() {
 
   let tela
   switch (rota) {
-    case 'mes': tela = <Mes />; break
+    case 'mes': tela = <Mes key="mes" />; break
+    case 'mes/limites': tela = <Mes key="limites" secaoInicial="limites" />; break
+    case 'mes/repetem': tela = <Mes key="repetem" secaoInicial="recorrentes" />; break
+    case 'mes/historico': tela = <Mes key="historico" secaoInicial="historico" />; break
     case 'importar': case 'credito': case 'patrimonio': tela = <EmBreve aba={rota} />; break
     case 'ajustes': tela = <Ajustes />; break
     case 'ajustes/contextos': tela = <AjustesContextos />; break

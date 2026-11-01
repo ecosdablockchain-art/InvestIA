@@ -44,3 +44,17 @@ body {
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* Séries dos gráficos (paleta validada para daltonismo, claro e escuro) */
+:root {
+  --serie-1: #2a78d6;
+  --serie-2: #eb6834;
+  --grade: #e3e6ec;
+  --eixo-texto: #5b6476;
+}
+.dark {
+  --serie-1: #3987e5;
+  --serie-2: #d95926;
+  --grade: #263149;
+  --eixo-texto: #94a0b8;
+}

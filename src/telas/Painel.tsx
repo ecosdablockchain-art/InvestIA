@@ -1,31 +1,61 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/banco'
-import { competenciaDe, hojeISO, nomeCompetencia } from '../core/datas'
-import { patrimonioLiquido, resumirMes, type Visao } from '../core/orcamento'
+import { competenciaDe, formatarData, hojeISO, nomeCompetencia, nomeCompetenciaCurto } from '../core/datas'
+import { formatarBRL } from '../core/dinheiro'
+import { filtrarVisao, gastosPorCategoria, patrimonioLiquido, resumirMes, type Visao } from '../core/orcamento'
+import { situacaoDoMes } from '../core/recorrencias'
+import { preverMeses } from '../core/previsao'
+import { alertasDeContasAtrasadas, alertasDeLimite, ordenarAlertas, type Alerta } from '../core/alertas'
+import { rankingCategorias } from '../core/historico'
 import { salvarPreferencias, usePreferencias } from '../seguranca/preferencias'
-import { CardValor, EstadoVazio, Segmentado, Tela } from '../ui/componentes'
-import { IconeAjustes } from '../ui/Icones'
+import { CardValor, Cartao, EstadoVazio, Segmentado, Tela } from '../ui/componentes'
+import { BarrasHorizontais, COR_ENTRADAS, COR_SAIDAS, GraficoColunas } from '../ui/graficos'
+import { IconeAjustes, IconeSeta } from '../ui/Icones'
+import { useDadosBase, type DadosBase } from './mes/comum'
+
+const MESES_PREVISAO = 6
 
 export function Painel() {
   const prefs = usePreferencias()
-  const competencia = competenciaDe(hojeISO())
-  const contextos = useLiveQuery(() => db.contextos.orderBy('ordem').filter((c) => !c.arquivado).toArray(), [])
+  const hoje = hojeISO()
+  const competencia = competenciaDe(hoje)
+  const base = useDadosBase()
   const lancamentos = useLiveQuery(() => db.lancamentos.where('competencia').equals(competencia).toArray(), [competencia])
+  const recorrencias = useLiveQuery(() => db.recorrencias.toArray(), [])
   const investimentos = useLiveQuery(() => db.investimentos.toArray(), [])
   const dividas = useLiveQuery(() => db.dividas.toArray(), [])
 
-  if (!contextos || !lancamentos || !investimentos || !dividas) return <Tela titulo="Painel"><p className="sr-only">Carregando…</p></Tela>
+  if (!base || !lancamentos || !recorrencias || !investimentos || !dividas) return <Tela titulo="Painel"><p className="sr-only">Carregando…</p></Tela>
 
-  const pessoal = contextos.find((c) => c.tipo === 'pessoal')
-  const idVisao = prefs.visaoPainel === 'pessoal' ? pessoal?.id ?? 'tudo' : prefs.visaoPainel
-  const valida = idVisao === 'tudo' || contextos.some((c) => c.id === idVisao)
+  const ativos = base.contextos.filter((c) => !c.arquivado)
+  const idVisao = prefs.visaoPainel === 'pessoal' ? base.pessoalId ?? 'tudo' : prefs.visaoPainel
+  const valida = idVisao === 'tudo' || ativos.some((c) => c.id === idVisao)
   const visao: Visao = !valida || idVisao === 'tudo' ? { tipo: 'tudo' } : { tipo: 'contexto', id: idVisao }
+
   const resumo = resumirMes(lancamentos, competencia, visao)
   const pl = patrimonioLiquido(investimentos, dividas)
+  const gastos = gastosPorCategoria(lancamentos, competencia, visao)
+  const recsVisao = filtrarVisao(recorrencias, visao)
+  const situacao = situacaoDoMes(recsVisao, lancamentos, competencia)
+
+  const alertas = ordenarAlertas([
+    ...alertasDeLimite(gastos, base.categorias.filter((c) => !c.arquivada)),
+    ...alertasDeContasAtrasadas(situacao, hoje),
+  ])
+
+  const previsao = preverMeses({
+    inicio: competencia, meses: MESES_PREVISAO, recorrencias: recsVisao,
+    lancadasNoInicio: new Set(situacao.filter((s) => s.lancada).map((s) => s.recorrencia.id)),
+    realizadoInicio: resumo, saidasPrevistas: [],
+  })
+  const sobraPrevista = previsao.reduce((a, m) => a + m.saldo, 0)
+  const ranking = rankingCategorias(gastos, 6)
+  const negocios = visao.tipo === 'contexto' && visao.id !== base.pessoalId ? [] : ativos.filter((c) => c.tipo === 'negocio')
+  const vazio = lancamentos.length === 0 && recorrencias.length === 0
 
   const opcoes = [
-    ...contextos.map((c) => ({ valor: c.id, rotulo: c.nome })),
-    ...(contextos.length > 1 ? [{ valor: 'tudo', rotulo: 'Tudo' }] : []),
+    ...ativos.map((c) => ({ valor: c.id, rotulo: c.nome })),
+    ...(ativos.length > 1 ? [{ valor: 'tudo', rotulo: 'Tudo' }] : []),
   ]
 
   return (
@@ -40,7 +70,7 @@ export function Painel() {
     >
       {opcoes.length > 1 && (
         <Segmentado rotulo="Visão do painel" opcoes={opcoes} valor={visao.tipo === 'tudo' ? 'tudo' : visao.id}
-          onMudar={(v) => salvarPreferencias({ visaoPainel: v === pessoal?.id ? 'pessoal' : v })} />
+          onMudar={(v) => salvarPreferencias({ visaoPainel: v === base.pessoalId ? 'pessoal' : v })} />
       )}
 
       <div className="grid grid-cols-2 gap-3">
@@ -50,12 +80,113 @@ export function Painel() {
         <CardValor rotulo="Patrimônio líquido" valor={pl} legenda="investido − dívidas" />
       </div>
 
-      {lancamentos.length === 0 && (
+      {alertas.length > 0 && <ListaAlertas alertas={alertas} base={base} />}
+
+      {vazio ? (
         <EstadoVazio icone="🧭" titulo="Tudo pronto para começar"
-          texto="Lance seus gastos na aba Mês ou importe o extrato do banco. Os alertas, a previsão de 6 meses e o gráfico de categorias aparecem aqui assim que houver dados.">
-          <a href="#/importar" className="inline-flex min-h-11 items-center rounded-xl bg-marca-600 px-4 font-semibold text-white">Importar extrato</a>
+          texto="Lance seus gastos na aba Mês. A previsão de 6 meses, os alertas e o gráfico de categorias aparecem aqui assim que houver dados.">
+          <a href="#/mes" className="inline-flex min-h-11 items-center rounded-xl bg-marca-600 px-4 font-semibold text-white">Lançar o primeiro gasto</a>
         </EstadoVazio>
+      ) : (
+        <>
+          <Cartao titulo="Próximos 6 meses">
+            <GraficoColunas
+              titulo="Entradas e saídas previstas para os próximos 6 meses"
+              rotulos={previsao.map((m) => nomeCompetenciaCurto(m.competencia))}
+              series={[
+                { nome: 'Entradas', cor: COR_ENTRADAS, valores: previsao.map((m) => m.entradas) },
+                { nome: 'Saídas', cor: COR_SAIDAS, valores: previsao.map((m) => m.saidas) },
+              ]}
+              notaDoMes={(i) => (i === 0 ? 'lançado + o que falta' : 'contas que se repetem')}
+            />
+            <p className="mt-3 border-t border-slate-200 pt-3 text-sm dark:border-borda-escuro">
+              Sobra prevista no período: <strong className={`numeros ${sobraPrevista < 0 ? 'text-negativo dark:text-negativo-escuro' : ''}`}>{formatarBRL(sobraPrevista)}</strong>
+            </p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Parcelas de cartão e de dívidas entram aqui na fase 6.</p>
+          </Cartao>
+
+          <Cartao titulo="Para onde foi o dinheiro">
+            {ranking.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400">Nenhum gasto lançado neste mês ainda.</p>
+            ) : (
+              <BarrasHorizontais titulo="Gastos do mês por categoria" itens={ranking.map((r) => {
+                const cat = r.categoriaId === 'outras' ? undefined : base.categoria(r.categoriaId)
+                const limite = cat?.limiteMensal
+                return {
+                  id: String(r.categoriaId),
+                  rotulo: r.categoriaId === 'outras' ? 'Outras categorias' : cat?.nome ?? 'Sem categoria',
+                  icone: r.categoriaId === 'outras' ? '➕' : cat?.icone ?? '•',
+                  valor: r.valor,
+                  detalhe: limite ? `limite ${formatarBRL(limite)}` : undefined,
+                }
+              })} />
+            )}
+          </Cartao>
+
+          {negocios.length > 0 && (
+            <Cartao titulo="Resultado dos negócios no mês">
+              <ul className="divide-y divide-slate-200 dark:divide-borda-escuro">
+                {negocios.map((n) => {
+                  const r = resumirMes(lancamentos, competencia, { tipo: 'contexto', id: n.id })
+                  return (
+                    <li key={n.id} className="flex items-center justify-between gap-3 py-2.5">
+                      <span><span aria-hidden>{n.icone} </span>{n.nome}
+                        <span className="block text-xs text-slate-500 dark:text-slate-400">entrou {formatarBRL(r.entradas)} · saiu {formatarBRL(r.gastos)}</span>
+                      </span>
+                      <span className={`numeros font-semibold ${r.sobra < 0 ? 'text-negativo dark:text-negativo-escuro' : r.sobra > 0 ? 'text-positivo dark:text-positivo-escuro' : ''}`}>{formatarBRL(r.sobra)}</span>
+                    </li>
+                  )
+                })}
+              </ul>
+              {visao.tipo === 'contexto' && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Fora da sua sobra pessoal.</p>}
+            </Cartao>
+          )}
+        </>
       )}
     </Tela>
   )
+}
+
+function ListaAlertas({ alertas, base }: { alertas: Alerta[]; base: DadosBase }) {
+  return (
+    <section aria-label="Alertas" className="overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200/70 dark:bg-superficie-escuro dark:ring-borda-escuro">
+      <h2 className="sr-only">Alertas</h2>
+      <ul className="divide-y divide-slate-200 dark:divide-borda-escuro">
+        {alertas.map((a, i) => {
+          const { icone, titulo, texto, href } = descrever(a, base)
+          return (
+            <li key={i}>
+              <a href={href} className="flex min-h-14 items-center gap-3 px-4 py-2.5 active:bg-slate-100 dark:active:bg-slate-800">
+                <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold text-white ${a.gravidade === 'critico' ? 'bg-red-600' : 'bg-amber-500'}`} aria-hidden>{icone}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold">
+                    <span className="sr-only">{a.gravidade === 'critico' ? 'Crítico: ' : 'Atenção: '}</span>{titulo}
+                  </span>
+                  <span className="block text-xs text-slate-600 dark:text-slate-400">{texto}</span>
+                </span>
+                <IconeSeta className="text-slate-400" />
+              </a>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
+function descrever(a: Alerta, base: DadosBase): { icone: string; titulo: string; texto: string; href: string } {
+  switch (a.tipo) {
+    case 'limite-estourado': {
+      const c = base.categoria(a.categoriaId)
+      return { icone: '!', titulo: `${c?.nome ?? 'Categoria'} passou do limite`, texto: `${formatarBRL(a.gasto)} de ${formatarBRL(a.limite)} (+${formatarBRL(a.gasto - a.limite)})`, href: '#/mes/limites' }
+    }
+    case 'conta-atrasada':
+      return { icone: '⏰', titulo: `${a.descricao} ainda não foi lançado`, texto: `previsto para ${formatarData(a.data)} · ${formatarBRL(a.valor)}`, href: '#/mes/repetem' }
+    case 'fatura-vencendo':
+      return { icone: '⏰', titulo: `Fatura ${a.cartao} vence em breve`, texto: `${formatarData(a.vencimento)} · ${formatarBRL(a.valor)}`, href: '#/credito' }
+    case 'fatura-vencida':
+      return { icone: '!', titulo: `Fatura ${a.cartao} vencida`, texto: `venceu em ${formatarData(a.vencimento)} · ${formatarBRL(a.valor)}`, href: '#/credito' }
+    case 'meta-atrasada':
+      return { icone: '⏰', titulo: `Meta ${a.nome} está atrasada`, texto: 'o aporte mensal não está acompanhando o prazo', href: '#/patrimonio' }
+  }
 }

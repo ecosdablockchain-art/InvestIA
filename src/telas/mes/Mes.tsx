@@ -10,15 +10,16 @@ import { FolhaLancamento, type PedidoLancamento } from './FolhaLancamento'
 import { Lancamentos } from './Lancamentos'
 import { Limites } from './Limites'
 import { Recorrentes } from './Recorrentes'
+import { Historico } from './Historico'
 
 const maiuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
 
-type Secao = 'lancamentos' | 'limites' | 'recorrentes'
+export type Secao = 'lancamentos' | 'limites' | 'recorrentes' | 'historico'
 
-export function Mes() {
+export function Mes({ secaoInicial = 'lancamentos' }: { secaoInicial?: Secao }) {
   const hoje = competenciaDe(hojeISO())
   const [competencia, setCompetencia] = useState(hoje)
-  const [secao, setSecao] = useState<Secao>('lancamentos')
+  const [secao, setSecao] = useState<Secao>(secaoInicial)
   const [idVisao, setIdVisao] = useState<string | null>(null)
   const [pedido, setPedido] = useState<PedidoLancamento | null>(null)
   const base = useDadosBase()
@@ -59,7 +60,7 @@ export function Mes() {
       )}
 
       <Segmentado rotulo="Seção" valor={secao} onMudar={setSecao}
-        opcoes={[{ valor: 'lancamentos', rotulo: 'Lançamentos' }, { valor: 'limites', rotulo: 'Limites' }, { valor: 'recorrentes', rotulo: 'Repetem' }]} />
+        opcoes={[{ valor: 'lancamentos', rotulo: 'Lançamentos' }, { valor: 'limites', rotulo: 'Limites' }, { valor: 'recorrentes', rotulo: 'Repetem' }, { valor: 'historico', rotulo: 'Histórico' }]} />
 
       {secao === 'lancamentos' && (
         <Lancamentos lancamentos={doMes} base={base} visao={visao} competencia={competencia}
@@ -71,10 +72,14 @@ export function Mes() {
           onNova={() => setPedido({ todoMes: true })} />
       )}
 
+      {secao === 'historico' && <Historico base={base} visao={visao} competencia={competencia} />}
+
+      {secao !== 'historico' && (
       <button type="button" onClick={() => setPedido({})} aria-label="Novo lançamento"
         className="fixed right-5 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 grid h-14 w-14 place-items-center rounded-full bg-marca-600 text-white shadow-lg active:bg-marca-700">
         <IconeMais width={28} height={28} strokeWidth={2.4} />
       </button>
+      )}
 
       <FolhaLancamento pedido={pedido} base={base} competencia={competencia} contextoPadrao={contextoPadrao} onFechar={() => setPedido(null)} />
     </Tela>

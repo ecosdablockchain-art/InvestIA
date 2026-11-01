@@ -153,7 +153,7 @@ export function Segmentado<T extends string>({ opcoes, valor, onMudar, rotulo }:
     <div role="radiogroup" aria-label={rotulo} className="flex gap-1 overflow-x-auto rounded-xl bg-slate-200/70 p-1 dark:bg-slate-800">
       {opcoes.map((o) => (
         <button key={o.valor} type="button" role="radio" aria-checked={o.valor === valor} onClick={() => onMudar(o.valor)}
-          className={cx('min-h-9 flex-1 rounded-lg px-3 text-sm font-medium whitespace-nowrap',
+          className={cx('min-h-9 flex-1 rounded-lg px-2.5 text-sm font-medium whitespace-nowrap',
             o.valor === valor ? 'bg-white shadow-sm dark:bg-slate-600' : 'text-slate-600 dark:text-slate-300')}>
           {o.rotulo}
         </button>

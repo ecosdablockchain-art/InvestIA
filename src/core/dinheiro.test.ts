@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dividirEmPartes, dividirPorPesos, formatarBRL, lerValor, multiplicar, somar } from './dinheiro'
+import { formatarEixo, dividirEmPartes, dividirPorPesos, formatarBRL, lerValor, multiplicar, somar } from './dinheiro'
 
 describe('lerValor', () => {
   it.each([
@@ -61,5 +61,15 @@ describe('multiplicar', () => {
   it('arredonda para o centavo', () => {
     expect(multiplicar(1000, 0.0299)).toBe(30)
     expect(multiplicar(-1005, 0.5)).toBe(-503)
+  })
+})
+
+describe('formatarEixo', () => {
+  it('encurta valores grandes', () => {
+    expect(formatarEixo(0)).toBe('0')
+    expect(formatarEixo(85000)).toBe('850')
+    expect(formatarEixo(350000)).toBe('3,5 mil')
+    expect(formatarEixo(120000000)).toBe('1,2 mi')
+    expect(formatarEixo(-200000)).toBe('−2 mil')
   })
 })

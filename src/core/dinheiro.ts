@@ -110,3 +110,14 @@ export function dividirPorPesos(total: Centavos, pesos: number[]): Centavos[] {
 export function somar(valores: Centavos[]): Centavos {
   return valores.reduce((a, b) => a + b, 0)
 }
+
+/** Rótulo curto para eixo de gráfico: "0", "850", "3,5 mil", "1,2 mi". */
+export function formatarEixo(valor: Centavos): string {
+  const reais = valor / 100
+  const abs = Math.abs(reais)
+  const sinal = reais < 0 ? '−' : ''
+  const fmt = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+  if (abs >= 1_000_000) return `${sinal}${fmt(abs / 1_000_000)} mi`
+  if (abs >= 1_000) return `${sinal}${fmt(abs / 1_000)} mil`
+  return `${sinal}${Math.round(abs)}`
+}
