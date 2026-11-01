@@ -53,6 +53,6 @@ src/
 4–5. Importação de extratos (OFX, CSV, PDF, OCR): removida a pedido; o código está no histórico do git (commit 9bcdcf2)
 6. ✅ Cartões, faturas, parcelados, dívidas e simulador
 7. ✅ Investimentos, cotações, reserva, metas, patrimônio
-8. Casa compartilhada
+8. Casa compartilhada: fora do plano
 9. Notificações
 10. Consultor com IA e camada de jogo
