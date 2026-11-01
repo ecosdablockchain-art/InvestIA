@@ -6,6 +6,8 @@ import { TabBar } from './ui/TabBar'
 import { Painel } from './telas/Painel'
 import { EmBreve } from './telas/EmBreve'
 import { Mes } from './telas/mes/Mes'
+import { Importar } from './telas/importar/Importar'
+import { AjustesRegras } from './telas/AjustesRegras'
 import { Aviso } from './ui/Aviso'
 import { Ajustes, Instalar } from './telas/Ajustes'
 import { AjustesCategorias, AjustesContextos } from './telas/AjustesListas'
@@ -62,10 +64,12 @@ export function App() {
     case 'mes/limites': tela = <Mes key="limites" secaoInicial="limites" />; break
     case 'mes/repetem': tela = <Mes key="repetem" secaoInicial="recorrentes" />; break
     case 'mes/historico': tela = <Mes key="historico" secaoInicial="historico" />; break
-    case 'importar': case 'credito': case 'patrimonio': tela = <EmBreve aba={rota} />; break
+    case 'importar': tela = <Importar />; break
+    case 'credito': case 'patrimonio': tela = <EmBreve aba={rota} />; break
     case 'ajustes': tela = <Ajustes />; break
     case 'ajustes/contextos': tela = <AjustesContextos />; break
     case 'ajustes/categorias': tela = <AjustesCategorias />; break
+    case 'ajustes/regras': tela = <AjustesRegras />; break
     case 'ajustes/instalar': tela = <Instalar />; break
     default: tela = <Painel />
   }

@@ -45,6 +45,7 @@ export interface Lancamento extends Base {
   recorrenciaId: string | null
   origem: OrigemLancamento
   importacaoId: string | null
+  idExterno?: string | null // identificador do banco (FITID), para não importar duas vezes
 }
 
 /** Molde do que se repete todo mês. Alimenta "contas que se repetem" e a previsão. */
