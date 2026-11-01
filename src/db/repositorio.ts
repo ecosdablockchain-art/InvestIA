@@ -13,6 +13,8 @@ export interface DadosLancamento {
   contextoId: string
   todoMes: boolean
   cartaoId?: string | null
+  /** Aporte em meta. */
+  metaId?: string | null
 }
 
 export function validarLancamento(d: DadosLancamento): string | null {
@@ -54,10 +56,11 @@ export async function salvarLancamento(banco: BancoFinancas, dados: DadosLancame
       tipo: dados.tipo, valor: dados.valor, data: dados.data, competencia, descricao, observacao: dados.observacao.trim(),
       categoriaId: dados.categoriaId, contextoId: dados.contextoId, recorrenciaId,
       cartaoId: dados.tipo === 'gasto' ? dados.cartaoId ?? null : null,
+      metaId: dados.metaId ?? existente?.metaId ?? null,
     }
     const lanc: Lancamento = existente
       ? tocar({ ...existente, ...campos })
-      : criar<Lancamento>({ ...campos, metaId: null, origem: 'manual', importacaoId: null })
+      : criar<Lancamento>({ ...campos, origem: 'manual', importacaoId: null })
     await banco.lancamentos.put(lanc)
     return lanc
   })

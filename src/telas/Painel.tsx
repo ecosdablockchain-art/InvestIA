@@ -5,10 +5,11 @@ import { simularQuitacao } from '../core/dividas'
 import { somarMeses } from '../core/datas'
 import { processarFaturasVencidas } from '../db/credito'
 import type { SaidaPrevista } from '../core/previsao'
+import { usePatrimonio } from './patrimonio/dados'
 import { db } from '../db/banco'
 import { competenciaDe, formatarData, hojeISO, nomeCompetencia, nomeCompetenciaCurto } from '../core/datas'
 import { formatarBRL } from '../core/dinheiro'
-import { filtrarVisao, gastosPorCategoria, patrimonioLiquido, resumirMes, type Visao } from '../core/orcamento'
+import { filtrarVisao, gastosPorCategoria, resumirMes, type Visao } from '../core/orcamento'
 import { situacaoDoMes } from '../core/recorrencias'
 import { preverMeses } from '../core/previsao'
 import { alertasDeContasAtrasadas, alertasDeLimite, ordenarAlertas, type Alerta } from '../core/alertas'
@@ -28,18 +29,18 @@ export function Painel() {
   const base = useDadosBase()
   const lancamentos = useLiveQuery(() => db.lancamentos.where('competencia').equals(competencia).toArray(), [competencia])
   const recorrencias = useLiveQuery(() => db.recorrencias.toArray(), [])
-  const investimentos = useLiveQuery(() => db.investimentos.toArray(), [])
   const dividas = useLiveQuery(() => db.dividas.toArray(), [])
   const cartoes = useLiveQuery(() => db.cartoes.filter((c) => !c.arquivado).toArray(), [])
   const parcelados = useLiveQuery(() => db.parcelados.toArray(), [])
   const faturas = useLiveQuery(() => db.faturas.toArray(), [])
+  const patrimonio = usePatrimonio()
   const comprasCartao = useLiveQuery(
     () => db.lancamentos.where('competencia').between(somarMeses(competencia, -3), somarMeses(competencia, 2), true, true).filter((l) => !!l.cartaoId).toArray(),
     [competencia],
   )
   useEffect(() => { void processarFaturasVencidas(db, hoje, prefs.taxaRotativoMensal) }, [hoje, prefs.taxaRotativoMensal])
 
-  if (!base || !lancamentos || !recorrencias || !investimentos || !dividas || !cartoes || !parcelados || !faturas || !comprasCartao) return <Tela titulo="Painel"><p className="sr-only">Carregando…</p></Tela>
+  if (!base || !lancamentos || !recorrencias || !dividas || !cartoes || !parcelados || !faturas || !comprasCartao || !patrimonio) return <Tela titulo="Painel"><p className="sr-only">Carregando…</p></Tela>
 
   const ativos = base.contextos.filter((c) => !c.arquivado)
   const idVisao = prefs.visaoPainel === 'pessoal' ? base.pessoalId ?? 'tudo' : prefs.visaoPainel
@@ -47,7 +48,7 @@ export function Painel() {
   const visao: Visao = !valida || idVisao === 'tudo' ? { tipo: 'tudo' } : { tipo: 'contexto', id: idVisao }
 
   const resumo = resumirMes(lancamentos, competencia, visao)
-  const pl = patrimonioLiquido(investimentos, dividas)
+  const pl = patrimonio.liquido
   const gastos = gastosPorCategoria(lancamentos, competencia, visao)
   const recsVisao = filtrarVisao(recorrencias, visao)
   const situacao = situacaoDoMes(recsVisao, lancamentos, competencia)
@@ -66,8 +67,10 @@ export function Painel() {
       else if ((st === 'fechada' || st === 'aberta') && diasParaVencer(comp, c, hoje) <= 3) alertasFatura.push({ tipo: 'fatura-vencendo', gravidade: 'atencao', faturaId: idFatura(c.id, comp), cartao: c.apelido, vencimento, valor })
     }
   }
+  const alertasMetas: Alerta[] = patrimonio.metas.filter((m) => m.s.estado === 'atrasada').map((m) => ({ tipo: 'meta-atrasada', gravidade: 'atencao', metaId: m.meta.id, nome: m.meta.nome }))
   const alertas = ordenarAlertas([
     ...alertasFatura,
+    ...alertasMetas,
     ...alertasDeLimite(gastos, base.categorias.filter((c) => !c.arquivada)),
     ...alertasDeContasAtrasadas(situacao, hoje),
   ])
@@ -164,6 +167,23 @@ export function Painel() {
             )}
           </Cartao>
 
+          {patrimonio.metas.some((m) => m.s.estado !== 'concluida') && (
+            <Cartao titulo="Metas">
+              <ul className="space-y-3">
+                {patrimonio.metas.filter((m) => m.s.estado !== 'concluida').slice(0, 3).map(({ meta, s }) => (
+                  <li key={meta.id}>
+                    <a href="#/patrimonio/metas" className="block">
+                      <span className="mb-1 flex justify-between gap-2 text-sm"><span><span aria-hidden>{meta.icone} </span>{meta.nome}</span>
+                        <span className="numeros text-slate-600 dark:text-slate-400">{Math.round(s.progresso * 100)}%</span></span>
+                      <span className="block h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" aria-hidden><span className="block h-full rounded-full" style={{ width: `${s.progresso * 100}%`, background: 'var(--serie-1)' }} /></span>
+                      {s.aporteNecessario ? <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">guardar {formatarBRL(s.aporteNecessario)}/mês{s.estado === 'em-risco' ? ' · aportes abaixo do necessário' : ''}</span> : null}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </Cartao>
+          )}
+
           {negocios.length > 0 && (
             <Cartao titulo="Resultado dos negócios no mês">
               <ul className="divide-y divide-slate-200 dark:divide-borda-escuro">
@@ -228,6 +248,6 @@ function descrever(a: Alerta, base: DadosBase): { icone: string; titulo: string;
     case 'fatura-vencida':
       return { icone: '!', titulo: `Fatura ${a.cartao} vencida sem pagamento`, texto: `venceu em ${formatarData(a.vencimento)} · ${formatarBRL(a.valor)} · entrou em Dívidas como rotativo`, href: '#/credito/dividas' }
     case 'meta-atrasada':
-      return { icone: '⏰', titulo: `Meta ${a.nome} está atrasada`, texto: 'o aporte mensal não está acompanhando o prazo', href: '#/patrimonio' }
+      return { icone: '⏰', titulo: `Meta ${a.nome}: o prazo passou`, texto: 'ajuste o prazo ou o valor, ou continue guardando', href: '#/patrimonio/metas' }
   }
 }

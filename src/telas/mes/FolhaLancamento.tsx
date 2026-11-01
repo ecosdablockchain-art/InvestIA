@@ -31,6 +31,8 @@ export function FolhaLancamento({ pedido, base, competencia, contextoPadrao, onF
   const [observacao, setObservacao] = useState('')
   const [cartaoId, setCartaoId] = useState<string | null>(null)
   const cartoes = useLiveQuery(() => db.cartoes.filter((c) => !c.arquivado).toArray(), [])
+  const metas = useLiveQuery(() => db.metas.filter((m) => !m.concluida).toArray(), [])
+  const [metaId, setMetaId] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
 
   useEffect(() => {
@@ -45,6 +47,7 @@ export function FolhaLancamento({ pedido, base, competencia, contextoPadrao, onF
     setData(l?.data ?? (competenciaDe(hoje) === competencia ? hoje : dataNaCompetencia(competencia, 1)))
     setObservacao(l?.observacao ?? '')
     setCartaoId(l?.cartaoId ?? null)
+    setMetaId(l?.metaId ?? null)
     setErro(null)
     if (l?.recorrenciaId) {
       void db.recorrencias.get(l.recorrenciaId).then((r) => setTodoMes(!!r && (r.fim === null || r.fim > l.competencia) && r.ativa))
@@ -58,7 +61,7 @@ export function FolhaLancamento({ pedido, base, competencia, contextoPadrao, onF
 
   async function salvar() {
     try {
-      await salvarLancamento(db, { tipo, valor, data, descricao, observacao, categoriaId, contextoId, todoMes, cartaoId: tipo === 'gasto' ? cartaoId : null }, editando)
+      await salvarLancamento(db, { tipo, valor, data, descricao, observacao, categoriaId, contextoId, todoMes, cartaoId: tipo === 'gasto' ? cartaoId : null, metaId }, editando)
       mostrarAviso(editando ? 'Lançamento atualizado' : tipo === 'gasto' ? 'Gasto lançado' : 'Entrada lançada')
       onFechar()
     } catch (e) {
@@ -123,6 +126,17 @@ export function FolhaLancamento({ pedido, base, competencia, contextoPadrao, onF
             </label>
           )
         })()}
+
+        {metas && metas.length > 0 && (
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium">Guardar para meta (opcional)</span>
+            <select value={metaId ?? ''} onChange={(e) => setMetaId(e.target.value || null)}
+              className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-base dark:border-borda-escuro dark:bg-slate-900">
+              <option value="">Nenhuma</option>
+              {metas.map((m) => <option key={m.id} value={m.id}>{m.icone} {m.nome}</option>)}
+            </select>
+          </label>
+        )}
 
         <div className="flex items-center justify-between gap-3 rounded-xl bg-white px-4 py-2 ring-1 ring-slate-200 dark:bg-superficie-escuro dark:ring-borda-escuro">
           <div>

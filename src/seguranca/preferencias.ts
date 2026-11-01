@@ -6,6 +6,10 @@ export interface Preferencias {
   taxaRotativoMensal: number // fração, ex.: 0,15 = 15% a.m.
   tema: 'sistema' | 'claro' | 'escuro'
   visaoPainel: string // 'tudo' ou id do contexto
+  perfil: 'conservador' | 'moderado' | 'arrojado'
+  fonteCotacao: 'brapi' | 'alphavantage'
+  /** Chave da API de cotações: fica só neste aparelho (não vai para a nuvem). */
+  chaveCotacao: string
 }
 
 const CHAVE = 'financas360:preferencias'
@@ -15,6 +19,9 @@ const PADRAO: Preferencias = {
   taxaRotativoMensal: 0.15,
   tema: 'sistema',
   visaoPainel: 'pessoal',
+  perfil: 'moderado',
+  fonteCotacao: 'brapi',
+  chaveCotacao: '',
 }
 
 let atual: Preferencias = carregar()

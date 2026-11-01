@@ -97,6 +97,7 @@ export function Ajustes() {
   const [mensagem, setMensagem] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
   const [confirmarApagar, setConfirmarApagar] = useState(false)
   const [textoApagar, setTextoApagar] = useState('')
+  const [chave, setChave] = useState(() => prefs.chaveCotacao)
   const [taxa, setTaxa] = useState(() => (prefs.taxaRotativoMensal * 100).toLocaleString('pt-BR'))
   const arquivoRef = useRef<HTMLInputElement>(null)
   const nContextos = useLiveQuery(() => db.contextos.filter((c) => !c.arquivado).count(), [])
@@ -199,6 +200,25 @@ export function Ajustes() {
             <Campo rotulo="Taxa do rotativo (% ao mês)" inputMode="decimal" value={taxa} onChange={(e) => setTaxa(e.target.value)} />
           </div>
           <Botao variante="secundario" onClick={salvarTaxa}>Salvar</Botao>
+        </div>
+      </Grupo>
+
+      <Grupo titulo="Investimentos" rodape={prefs.fonteCotacao === 'brapi'
+        ? 'brapi.dev: crie uma conta grátis e copie o token em brapi.dev/dashboard. Sem token, só alguns ativos de teste funcionam.'
+        : 'Alpha Vantage: peça uma chave grátis em alphavantage.co (limite de 25 consultas por dia).'}>
+        <div className="space-y-3 p-3">
+          <div>
+            <p className="mb-1.5 text-sm font-medium">Seu perfil de investidor</p>
+            <Segmentado rotulo="Perfil" valor={prefs.perfil} onMudar={(perfil) => salvarPreferencias({ perfil })}
+              opcoes={[{ valor: 'conservador', rotulo: 'Conservador' }, { valor: 'moderado', rotulo: 'Moderado' }, { valor: 'arrojado', rotulo: 'Arrojado' }]} />
+          </div>
+          <div>
+            <p className="mb-1.5 text-sm font-medium">Fonte das cotações</p>
+            <Segmentado rotulo="Fonte das cotações" valor={prefs.fonteCotacao} onMudar={(fonteCotacao) => salvarPreferencias({ fonteCotacao })}
+              opcoes={[{ valor: 'brapi', rotulo: 'brapi.dev' }, { valor: 'alphavantage', rotulo: 'Alpha Vantage' }]} />
+          </div>
+          <Campo rotulo="Chave da API de cotações" type="password" autoComplete="off" value={chave} onChange={(e) => setChave(e.target.value)}
+            onBlur={() => { salvarPreferencias({ chaveCotacao: chave.trim() }) }} dica="Fica guardada só neste aparelho." />
         </div>
       </Grupo>
 
