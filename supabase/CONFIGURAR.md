@@ -42,7 +42,6 @@ Mande esses dois para o Claude. Eles são públicos por natureza: a segurança v
 ## 5. Antes de abrir para o público
 
 - **E-mails**: configurado com SMTP do Gmail (senha de app), até ~500 por dia. Rate limit em Authentication › Rate Limits: 100/hora.
-  Para abrir ao público, configure um SMTP próprio em **Authentication › Emails › SMTP Settings**
-  (ex.: Resend, Brevo ou Amazon SES).
+  Se o volume crescer, troque por um domínio próprio com Resend, Brevo ou Amazon SES.
 - **Termos e Privacidade**: preenchidos (responsável e contato em `src/conta/Legal.tsx`). Recomendado: revisão por um advogado.
 - **CNPJ / MEI**: confirmar se a atividade está coberta antes de cobrar assinatura.
