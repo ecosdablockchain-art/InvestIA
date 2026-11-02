@@ -370,7 +370,14 @@ export function Ajustes() {
         <Linha icone="📄" titulo="Termos de uso" href="#/termos" />
         <Linha icone="🗑️" titulo="Excluir minha conta" perigo href="#/ajustes/excluir-conta" />
         <Linha icone="ℹ️" titulo="Versão" detalhe={__VERSAO__} />
-        <Linha icone="🔄" titulo="Procurar atualização" onClick={() => { procurarAtualizacao(); setMensagem({ tipo: 'ok', texto: 'Procurando… se houver versão nova, aparece um aviso azul no topo.' }) }} />
+        <Linha icone="🔄" titulo="Procurar atualização" onClick={() => {
+          setMensagem({ tipo: 'ok', texto: 'Procurando versão nova…' })
+          void procurarAtualizacao().then((r) => setMensagem(
+            r === 'nova' ? { tipo: 'ok', texto: 'Versão nova encontrada: toque em Atualizar, na faixa azul do topo.' }
+            : r === 'atual' ? { tipo: 'ok', texto: 'Você já está na versão mais nova.' }
+            : r === 'sem-conexao' ? { tipo: 'erro', texto: 'Sem conexão para procurar atualização. Tente de novo com internet.' }
+            : { tipo: 'erro', texto: 'Este navegador não permite atualizar por aqui. Feche e abra o app de novo.' }))
+        }} />
       </Grupo>
     </Tela>
   )
