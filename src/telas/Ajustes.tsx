@@ -13,9 +13,9 @@ import { sincronizarAgora, temPendencias, useEstadoSinc } from '../nuvem/estado'
 import { useSessao } from '../conta/sessao'
 import { procurarAtualizacao } from '../ui/Atualizacao'
 import { salvarAjustesConta, useAjustesConta } from '../db/ajustesConta'
+import { buscarCotacoes } from '../servicos/cotacoes'
+import { formatarBRL } from '../core/dinheiro'
 import { agendarNotificacoes, ativarNesteAparelho, desativarNesteAparelho, enviarTeste, inscritoAqui, suporte as suporteNotificacoes } from '../servicos/notificacoes'
-
-const mostrarAvisoChave = () => { void import('../ui/Aviso').then((m) => m.mostrarAviso('Chave salva na sua conta')) }
 
 const fmtHora = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
 
@@ -165,6 +165,8 @@ export function Ajustes() {
   const ajustes = useAjustesConta()
   const [chave, setChave] = useState<string | null>(null)
   const [chaveClaude, setChaveClaude] = useState<string | null>(null)
+  const [testeChave, setTesteChave] = useState<{ tipo: 'ok' | 'erro' | 'testando'; texto: string } | null>(null)
+  const [claudeSalva, setClaudeSalva] = useState(false)
   const [taxa, setTaxa] = useState<string | null>(null)
   const chaveMostrada = chave ?? ajustes?.chaveCotacao ?? ''
   const taxaMostrada = taxa ?? (ajustes ? (ajustes.taxaRotativoMensal * 100).toLocaleString('pt-BR') : '')
@@ -190,6 +192,23 @@ export function Ajustes() {
       }
     } catch {
       setMensagem({ tipo: 'erro', texto: 'Não foi possível ativar o Face ID neste aparelho.' })
+    }
+  }
+
+  async function salvarETestarChave() {
+    if (!ajustes) return
+    const valor = chaveMostrada.trim()
+    await salvarAjustesConta({ chaveCotacao: valor }); setChave(null)
+    if (ajustes.fonteCotacao === 'alphavantage' && !valor) { setTesteChave({ tipo: 'erro', texto: 'Chave apagada. A Alpha Vantage precisa de uma chave.' }); return }
+    setTesteChave({ tipo: 'testando', texto: 'Chave salva. Testando com PETR4…' })
+    try {
+      const r = await buscarCotacoes(['PETR4'], ajustes.fonteCotacao, valor)
+      const preco = r.precos.get('PETR4')
+      setTesteChave(preco !== undefined
+        ? { tipo: 'ok', texto: `Chave salva e funcionando: PETR4 a ${formatarBRL(preco)}.` }
+        : { tipo: 'erro', texto: `Chave salva, mas o teste falhou: ${r.falhas[0]?.motivo ?? 'sem resposta'}. Confira se copiou o token inteiro.` })
+    } catch {
+      setTesteChave({ tipo: 'erro', texto: 'Chave salva, mas não foi possível falar com o serviço de cotações. Confira a internet e tente de novo.' })
     }
   }
 
@@ -288,17 +307,26 @@ export function Ajustes() {
             <Segmentado rotulo="Fonte das cotações" valor={ajustes.fonteCotacao} onMudar={(fonteCotacao) => void salvarAjustesConta({ fonteCotacao })}
               opcoes={[{ valor: 'brapi', rotulo: 'brapi.dev' }, { valor: 'alphavantage', rotulo: 'Alpha Vantage' }]} />
           </div>
-          <Campo rotulo="Chave da API de cotações" type="password" autoComplete="off" value={chaveMostrada} onChange={(e) => setChave(e.target.value)}
-            onBlur={() => { if (chave !== null) { void salvarAjustesConta({ chaveCotacao: chave.trim() }); setChave(null); mostrarAvisoChave() } }}
+          <Campo rotulo="Chave da API de cotações" type="password" autoComplete="off" value={chaveMostrada}
+            onChange={(e) => { setChave(e.target.value); setTesteChave(null) }}
             dica="Fica na sua conta: vale em todos os aparelhos em que você entrar." />
+          <Botao className="w-full" disabled={testeChave?.tipo === 'testando'} onClick={() => void salvarETestarChave()}>
+            {testeChave?.tipo === 'testando' ? 'Testando…' : 'Salvar e testar'}
+          </Botao>
+          {testeChave && <p role="status" className={`rounded-xl px-3 py-2 text-sm ${testeChave.tipo === 'erro'
+            ? 'bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100'
+            : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100'}`}>{testeChave.tipo === 'ok' ? '✅ ' : testeChave.tipo === 'erro' ? '⚠️ ' : ''}{testeChave.texto}</p>}
         </div>
       </Grupo>}
 
       {ajustes && <Grupo titulo="Consultor e jogo" rodape="O Consultor usa a IA Claude com a sua chave (crie em console.anthropic.com; o uso é cobrado pela Anthropic na sua conta). A chave fica na sua conta e vale em todos os aparelhos.">
         <div className="p-3">
           <Campo rotulo="Chave da API do Claude" type="password" autoComplete="off" placeholder="sk-ant-…" value={chaveClaude ?? ajustes.chaveClaude}
-            onChange={(e) => setChaveClaude(e.target.value)}
-            onBlur={() => { if (chaveClaude !== null) { void salvarAjustesConta({ chaveClaude: chaveClaude.trim() }); setChaveClaude(null) } }} />
+            onChange={(e) => { setChaveClaude(e.target.value); setClaudeSalva(false) }} />
+          <Botao className="mt-3 w-full" variante="secundario" onClick={() => {
+            void salvarAjustesConta({ chaveClaude: (chaveClaude ?? ajustes.chaveClaude).trim() }).then(() => { setChaveClaude(null); setClaudeSalva(true) })
+          }}>Salvar chave</Botao>
+          {claudeSalva && <p role="status" className="mt-2 text-sm">✅ Chave do Claude salva na sua conta.</p>}
         </div>
         <Linha icone="💬" titulo="Abrir o Consultor" href="#/consultor" />
         <Linha icone="🏆" titulo="Mostrar nível, missões e conquistas">
