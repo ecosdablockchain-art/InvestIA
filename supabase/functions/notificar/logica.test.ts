@@ -80,3 +80,25 @@ describe('criptografia real (web-push) contra um serviço de push local', () => 
     servidor.close()
   })
 })
+
+describe('segurança do serviço', async () => {
+  const { endpointOficial, segredoConfere } = await import('./logica')
+  it('só aceita endereços dos serviços de push oficiais', () => {
+    expect(endpointOficial('https://web.push.apple.com/QWERTY')).toBe(true)
+    expect(endpointOficial('https://fcm.googleapis.com/fcm/send/abc')).toBe(true)
+    expect(endpointOficial('https://updates.push.services.mozilla.com/wpush/v2/x')).toBe(true)
+    expect(endpointOficial('https://wns2-par02p.notify.windows.com/w/?token=x')).toBe(true)
+    expect(endpointOficial('https://169.254.169.254/latest')).toBe(false)
+    expect(endpointOficial('https://alvo.exemplo.com/fcm.googleapis.com/')).toBe(false)
+    expect(endpointOficial('https://fcm.googleapis.com.evil.com/x')).toBe(false)
+    expect(endpointOficial('https://evilpush.apple.com.attacker.io/')).toBe(false)
+    expect(endpointOficial('http://fcm.googleapis.com/x')).toBe(false)
+  })
+  it('confere o segredo do agendador', () => {
+    expect(segredoConfere('abc123', 'abc123')).toBe(true)
+    expect(segredoConfere('abc124', 'abc123')).toBe(false)
+    expect(segredoConfere('abc', 'abc123')).toBe(false)
+    expect(segredoConfere(null, 'abc123')).toBe(false)
+    expect(segredoConfere('', '')).toBe(false)
+  })
+})

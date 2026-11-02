@@ -52,3 +52,19 @@ export async function enviarTeste(inscricoes: Inscricao[], enviar: Enviar): Prom
   }
   return { aparelhos: inscricoes.length, ok }
 }
+
+/** Só envia para os serviços de push oficiais (Apple, Google, Mozilla, Microsoft). */
+export function endpointOficial(endpoint: string): boolean {
+  return endpoint.length <= 1000 && /^https:\/\/([a-z0-9-]+\.)*(push\.apple\.com|fcm\.googleapis\.com|push\.services\.mozilla\.com|notify\.windows\.com)\//.test(endpoint)
+}
+
+/** Compara segredos sem revelar, pelo tempo de resposta, quantos caracteres batem. */
+export function segredoConfere(recebido: string | null, esperado: string): boolean {
+  if (!recebido || !esperado || recebido.length !== esperado.length) return false
+  let dif = 0
+  for (let i = 0; i < esperado.length; i++) dif |= recebido.charCodeAt(i) ^ esperado.charCodeAt(i)
+  return dif === 0
+}
+
+/** Intervalo mínimo entre dois testes da mesma pessoa. */
+export const INTERVALO_TESTE_MS = 30_000

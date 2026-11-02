@@ -16,6 +16,7 @@ Deno.serve(async (req: Request) => {
   }
   webpush.setVapidDetails('https://ecosdablockchain-art.github.io/InvestIA/', cfg.publica, cfg.privada)
   const enviar: Enviar = async (i, conteudo) => {
+    if (!endpointOficial(i.endpoint)) return 410 // endereço estranho: trata como inscrição morta (é apagada)
     try {
       const r = await webpush.sendNotification({ endpoint: i.endpoint, keys: { p256dh: i.p256dh, auth: i.auth } }, conteudo, { TTL: 60 * 60 * 24, urgency: 'normal' })
       return r.statusCode
@@ -23,7 +24,7 @@ Deno.serve(async (req: Request) => {
   }
 
   // 1) agendador (pg_cron), com o segredo guardado no banco
-  if (req.headers.get('x-cron') && req.headers.get('x-cron') === cfg.segredo_cron) {
+  if (segredoConfere(req.headers.get('x-cron'), cfg.segredo_cron)) {
     const banco: Banco = {
       async pendentes(ate, limite) {
         const desde = new Date(Date.parse(ate) - 2 * 86_400_000).toISOString()
@@ -51,6 +52,9 @@ Deno.serve(async (req: Request) => {
   const corpo = await req.json().catch(() => ({})) as { acao?: string }
   if (corpo.acao === 'chave') return json({ publica: cfg.publica })
   if (corpo.acao === 'teste') {
+    const { data: lim } = await admin.from('push_limites').select('ultimo_teste').eq('user_id', usuario.user.id).maybeSingle()
+    if (lim && Date.now() - Date.parse(lim.ultimo_teste) < INTERVALO_TESTE_MS) return json({ erro: 'Aguarde alguns segundos antes de testar de novo.' }, 429)
+    await admin.from('push_limites').upsert({ user_id: usuario.user.id, ultimo_teste: new Date().toISOString() })
     const { data } = await admin.from('push_inscricoes').select('endpoint, user_id, p256dh, auth').eq('user_id', usuario.user.id)
     return json(await enviarTeste((data ?? []) as Inscricao[], enviar))
   }

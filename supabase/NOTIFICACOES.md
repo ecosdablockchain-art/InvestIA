@@ -34,4 +34,5 @@ A partir daí, o Supabase confere a agenda a cada 15 minutos e envia o que estiv
 
 - **"O serviço de notificações ainda não foi configurado"**: o passo 2 não foi feito, ou o nome da função não é `notificar`.
 - **O teste chega, mas os avisos agendados não**: em **Integrations › Cron** (ou **Database › Cron Jobs**), confira se o job `financas360-notificar` existe e roda a cada 15 minutos.
-- **Para atualizar o serviço no futuro**: cole o novo `index.ts` na mesma função e faça o deploy de novo.
+- **Para atualizar o serviço no futuro**: abra a função `notificar` › aba **Code**, troque o conteúdo do `index.ts` pelo novo e faça o deploy de novo. Confira depois que "Verify JWT" continua desligado.
+- **Segurança**: rode também `supabase/seguranca.sql` (uma vez; pode repetir).

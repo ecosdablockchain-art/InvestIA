@@ -46,5 +46,7 @@ describe('backup', () => {
 describe('csv', () => {
   it('escapa ponto e vírgula e aspas', () => {
     expect(csvDeLinhas(['a', 'b'], [['x;y', 'diz "oi"']])).toBe('﻿a;b\n"x;y";"diz ""oi"""')
+    expect(csvDeLinhas(['d'], [['=HYPERLINK("http://x")'], ['@SOMA(A1)'], ['-45,90'], [-4590], ['+55 11 9999']]))
+      .toBe('\uFEFFd\n"\'=HYPERLINK(""http://x"")"\n\'@SOMA(A1)\n-45,90\n-4590\n\'+55 11 9999')
   })
 })

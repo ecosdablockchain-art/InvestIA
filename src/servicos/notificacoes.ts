@@ -60,8 +60,10 @@ export async function ativarNesteAparelho(): Promise<void> {
   let insc = await reg.pushManager.getSubscription()
   if (!insc) insc = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlParaBytes(chave) })
   const j = insc.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } }
-  const { error } = await supabase.from('push_inscricoes').upsert({ endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, aparelho: nomeDoAparelho() })
-  if (error) throw new Error(`Não foi possível salvar a inscrição (${error.message}).`)
+  const { error } = await supabase.from('push_inscricoes').upsert({ endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, aparelho: nomeDoAparelho().slice(0, 80) })
+  if (error) throw new Error(/limite de 10/.test(error.message)
+    ? 'Sua conta já tem 10 aparelhos com notificações. Desative em um aparelho antigo e tente de novo.'
+    : `Não foi possível salvar a inscrição (${error.message}).`)
   await agendarNotificacoes(true)
 }
 
@@ -77,7 +79,10 @@ export async function desativarNesteAparelho(): Promise<void> {
 export async function enviarTeste(): Promise<{ aparelhos: number; ok: number }> {
   if (!supabase) throw new Error('Servidor não configurado.')
   const { data, error } = await supabase.functions.invoke('notificar', { body: { acao: 'teste' } })
-  if (error) throw new Error('O serviço de notificações ainda não foi configurado no Supabase.')
+  if (error) {
+    const status = (error as { context?: Response }).context?.status
+    throw new Error(status === 429 ? 'Aguarde alguns segundos antes de testar de novo.' : 'O serviço de notificações ainda não foi configurado no Supabase.')
+  }
   return data as { aparelhos: number; ok: number }
 }
 

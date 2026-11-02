@@ -59,7 +59,9 @@ export async function apagarTudo(banco: BancoFinancas): Promise<void> {
 /** Lista de todos os dados em CSV (lançamentos), para abrir em planilha. */
 export function csvDeLinhas(cabecalho: string[], linhas: (string | number | null)[][]): string {
   const esc = (v: string | number | null) => {
-    const s = v === null ? '' : String(v)
+    let s = v === null ? '' : String(v)
+    // Texto que começa com = + - @ vira fórmula no Excel: neutraliza (números continuam números).
+    if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s) && !/^-?[\d.,]+$/.test(s)) s = `'${s}`
     return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
   }
   return '﻿' + [cabecalho, ...linhas].map((l) => l.map(esc).join(';')).join('\n')

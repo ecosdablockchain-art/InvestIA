@@ -16,6 +16,9 @@ Leva uns 15 minutos, tudo pelo navegador.
 1. No menu da esquerda: **SQL Editor › New query**.
 2. Cole o conteúdo inteiro de `supabase/migracao.sql` e clique em **Run**.
 3. Deve aparecer "Success. No rows returned".
+4. Depois de `migracao-notificacoes.sql` (veja NOTIFICACOES.md), rode também `supabase/seguranca.sql`:
+   tira permissões que o Supabase dá por padrão (inclusive TRUNCATE), põe cota de armazenamento por conta
+   e limita as inscrições de notificação. A última consulta deve mostrar "ok" nas três colunas.
 
 ## 3. Configurar o login
 
