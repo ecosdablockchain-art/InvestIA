@@ -106,22 +106,25 @@ export function Painel() {
 
   return (
     <Tela
+      mural
       titulo="Painel"
       subtitulo={nomeCompetencia(competencia)}
       acao={
         <div className="flex gap-2">
-        <a href="#/ajustes" aria-label="Ajustes" className="grid h-11 w-11 place-items-center rounded-full bg-white text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-superficie-escuro dark:text-slate-200 dark:ring-borda-escuro">
+        <a href="#/ajustes" aria-label="Ajustes" className="grid h-11 w-11 place-items-center lg:hidden rounded-full bg-white text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-superficie-escuro dark:text-slate-200 dark:ring-borda-escuro">
           <IconeAjustes width={22} height={22} />
         </a>
         </div>
       }
     >
       {opcoes.length > 1 && (
-        <Segmentado rotulo="Visão do painel" opcoes={opcoes} valor={visao.tipo === 'tudo' ? 'tudo' : visao.id}
-          onMudar={(v) => salvarPreferencias({ visaoPainel: v === base.pessoalId ? 'pessoal' : v })} />
+        <div className="col-total lg:max-w-xl">
+          <Segmentado rotulo="Visão do painel" opcoes={opcoes} valor={visao.tipo === 'tudo' ? 'tudo' : visao.id}
+            onMudar={(v) => salvarPreferencias({ visaoPainel: v === base.pessoalId ? 'pessoal' : v })} />
+        </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="col-total grid grid-cols-2 gap-3 lg:grid-cols-4">
         <CardValor rotulo="Entradas do mês" valor={resumo.entradas} tom="positivo" />
         <CardValor rotulo="Gastos do mês" valor={resumo.gastos} tom="negativo" />
         <CardValor rotulo="Sobra" valor={resumo.sobra} tom="auto" legenda={resumo.sobra < 0 ? 'gastou mais do que entrou' : undefined} />
@@ -133,10 +136,10 @@ export function Painel() {
       <CartaoJogo />
 
       {vazio ? (
-        <EstadoVazio icone="🧭" titulo="Tudo pronto para começar"
-          texto="Toque em Lançar, na barra de baixo, para registrar seus gastos e entradas. A previsão de 6 meses, os alertas e o gráfico de categorias aparecem aqui assim que houver dados.">
+        <div className="col-total"><EstadoVazio icone="🧭" titulo="Tudo pronto para começar"
+          texto="Toque em Lançar (no computador, em Novo lançamento) para registrar seus gastos e entradas. A previsão de 6 meses, os alertas e o gráfico de categorias aparecem aqui assim que houver dados.">
           <a href="#/mes/novo" className="inline-flex min-h-11 items-center rounded-xl bg-marca-600 px-4 font-semibold text-white">Lançar o primeiro gasto</a>
-        </EstadoVazio>
+        </EstadoVazio></div>
       ) : (
         <>
           <Cartao titulo="Próximos 6 meses">

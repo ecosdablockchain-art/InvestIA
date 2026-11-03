@@ -69,15 +69,15 @@ export function Insights() {
   const { numeros: n, plano, insights } = r
   const periodo = n.parcial ? 'este mês, até hoje' : `média dos últimos ${n.mesesAnalisados === 1 ? 'mês' : `${n.mesesAnalisados} meses`}`
   return (
-    <Tela titulo="Insights" subtitulo="O que fazer com o seu dinheiro, a partir dos seus lançamentos">
+    <Tela mural titulo="Insights" subtitulo="O que fazer com o seu dinheiro, a partir dos seus lançamentos">
       {n.mesesAnalisados > 0 && (
         <>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="col-total grid grid-cols-3 gap-2 lg:gap-3">
             <CardValor rotulo="Renda" valor={n.renda} legenda="por mês" />
             <CardValor rotulo="Gastos" valor={n.gasto} legenda="por mês" />
             <CardValor rotulo="Sobra" valor={n.sobra} tom="auto" legenda={n.taxaPoupanca !== null ? `${Math.round(n.taxaPoupanca * 100)}% da renda` : 'por mês'} />
           </div>
-          <p className="-mt-2 px-1 text-xs text-slate-500 dark:text-slate-400">Pessoal, {periodo}. Aportes em metas contam como dinheiro guardado.</p>
+          <p className="col-total -mt-2 px-1 text-xs text-slate-500 lg:mt-0 dark:text-slate-400">Pessoal, {periodo}. Aportes em metas contam como dinheiro guardado.</p>
 
           <Cartao titulo="Seu plano, passo a passo">
             <ol>
@@ -112,7 +112,7 @@ export function Insights() {
         </section>
       )}
 
-      <p className="px-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+      <p className="col-total px-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
         Sugestões automáticas e educativas, calculadas no seu aparelho a partir dos seus lançamentos. Não são recomendação de investimento.
         Quanto mais completos os lançamentos, mais certeiras ficam.
       </p>

@@ -29,7 +29,7 @@ export function Folha({ aberta, titulo, onFechar, children, acao }: {
     <div className="fixed inset-0 z-40">
       <div className="absolute inset-0 bg-black/40" onClick={onFechar} aria-hidden />
       <div ref={painel} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1}
-        className="pb-seguro absolute inset-x-0 bottom-0 mx-auto flex max-h-[92dvh] max-w-xl flex-col rounded-t-3xl bg-fundo shadow-2xl outline-none dark:bg-fundo-escuro">
+        className="pb-seguro absolute inset-x-0 bottom-0 mx-auto flex max-h-[92dvh] max-w-xl flex-col rounded-t-3xl bg-fundo shadow-2xl outline-none dark:bg-fundo-escuro md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:max-h-[85dvh] md:w-[calc(100%-3rem)] md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:pb-0 lg:ml-32">
         <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-2">
           <button type="button" onClick={onFechar} className="min-h-11 px-1 text-marca-600 dark:text-marca-100">Cancelar</button>
           <h2 id={id} className="font-semibold">{titulo}</h2>

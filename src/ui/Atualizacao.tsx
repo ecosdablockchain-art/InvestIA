@@ -65,7 +65,7 @@ export function AvisoAtualizacao() {
   useEffect(() => { const f = () => setNova(haNova); ouvintes.add(f); return () => { ouvintes.delete(f) } }, [])
   if (!nova) return null
   return (
-    <div role="status" className="pt-seguro fixed inset-x-0 top-0 z-50 bg-marca-600 px-4 pb-2 text-white shadow-lg">
+    <div role="status" className="pt-seguro fixed inset-x-0 top-0 z-50 bg-marca-600 px-4 pb-2 text-white shadow-lg lg:pt-2">
       <div className="mx-auto flex max-w-xl items-center gap-3">
         <span className="flex-1 text-sm font-medium">{aplicando ? 'Atualizando…' : 'Nova versão do Finanças 360 disponível.'}</span>
         <button type="button" disabled={aplicando} className="min-h-10 rounded-lg bg-white px-3 text-sm font-semibold text-marca-700 disabled:opacity-60"

@@ -5,11 +5,13 @@ import { IconeSeta, IconeVoltar } from './Icones'
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ')
 
-export function Tela({ titulo, subtitulo, acao, voltar, children }: {
+export function Tela({ titulo, subtitulo, acao, voltar, children, mural }: {
   titulo: string; subtitulo?: string; acao?: ReactNode; voltar?: { rotulo: string; href: string }; children: ReactNode
+  /** No computador, distribui os cartões em 2 colunas (filhos com a classe "col-total" ocupam a largura toda). */
+  mural?: boolean
 }) {
   return (
-    <main className="mx-auto w-full max-w-xl px-4 pt-seguro pb-28">
+    <main className={cx('mx-auto w-full px-4 pt-seguro pb-28 md:px-6 lg:px-10 lg:pt-8 lg:pb-12', mural ? 'max-w-xl md:max-w-2xl lg:max-w-6xl' : 'max-w-xl md:max-w-2xl lg:max-w-3xl')}>
       {voltar && (
         <a href={voltar.href} className="-ml-1 mb-1 inline-flex min-h-11 items-center gap-0.5 text-marca-600 dark:text-marca-100">
           <IconeVoltar width={20} height={20} /> {voltar.rotulo}
@@ -22,7 +24,7 @@ export function Tela({ titulo, subtitulo, acao, voltar, children }: {
         </div>
         {acao}
       </header>
-      <div className="space-y-4">{children}</div>
+      <div className={mural ? 'mural' : 'space-y-4'}>{children}</div>
     </main>
   )
 }

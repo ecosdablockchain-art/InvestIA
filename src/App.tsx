@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRota, type Aba } from './rotas'
 import { usePreferencias } from './seguranca/preferencias'
 import { TelaBloqueio } from './seguranca/TelaBloqueio'
-import { TabBar } from './ui/TabBar'
+import { BarraLateral, TabBar } from './ui/TabBar'
 import { Painel } from './telas/Painel'
 import { Credito } from './telas/credito/Credito'
 import { Patrimonio } from './telas/patrimonio/Patrimonio'
@@ -88,8 +88,9 @@ export function App() {
 
   return (
     <>
-      <div aria-hidden={oculto} className={oculto ? 'blur-xl' : undefined}>{tela}</div>
+      <div aria-hidden={oculto} className={`lg:pl-64 ${oculto ? 'blur-xl' : ''}`}>{tela}</div>
       <TabBar ativa={aba} />
+      <BarraLateral ativa={aba} rota={rota} />
       <Aviso />
     </>
   )

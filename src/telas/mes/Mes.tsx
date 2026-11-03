@@ -76,7 +76,7 @@ export function Mes({ secaoInicial = 'lancamentos', abrirNovo = false }: { secao
 
       {secao !== 'historico' && (
       <button type="button" onClick={() => setPedido({})} aria-label="Novo lançamento"
-        className="fixed right-5 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 grid h-14 w-14 place-items-center rounded-full bg-marca-600 text-white shadow-lg active:bg-marca-700">
+        className="fixed right-5 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 lg:hidden grid h-14 w-14 place-items-center rounded-full bg-marca-600 text-white shadow-lg active:bg-marca-700">
         <IconeMais width={28} height={28} strokeWidth={2.4} />
       </button>
       )}

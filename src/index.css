@@ -62,3 +62,11 @@ body {
 /* Status (reservados: sempre com texto/ícone junto) */
 :root { --st-paga: #0ca30c; --st-vencida: #d03b3b; --st-pagar: #e09a00; --st-futura: #94a3b8; }
 .dark { --st-futura: #64748b; }
+
+/* Mural: 1 coluna no celular, 2 no computador, cartões sem quebrar no meio */
+.mural > * + * { margin-top: 1rem; }
+@media (min-width: 1024px) {
+  .mural { columns: 2; column-gap: 1.25rem; }
+  .mural > * { break-inside: avoid; margin-top: 0; margin-bottom: 1.25rem; }
+  .mural > .col-total { column-span: all; }
+}

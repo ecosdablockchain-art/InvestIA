@@ -24,7 +24,7 @@ export function fecharAviso(): void {
 export function Aviso() {
   const a = useSyncExternalStore((f) => { ouvintes.add(f); return () => ouvintes.delete(f) }, () => atual)
   return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-50 flex justify-center px-4">
+    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-50 flex justify-center px-4 lg:bottom-8 lg:pl-64">
       {a && (
         <div key={a.id} role="status" className="pointer-events-auto flex min-h-12 w-full max-w-md items-center gap-3 rounded-2xl bg-slate-900 px-4 py-2 text-white shadow-xl dark:bg-slate-100 dark:text-slate-900">
           <span className="flex-1 text-sm">{a.texto}</span>
