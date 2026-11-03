@@ -3,7 +3,7 @@ import { Tela } from '../ui/componentes'
 
 const RESPONSAVEL = 'Rafael Martins Mendes'
 const CONTATO = 'ecosdablockchain@gmail.com'
-const VERSAO = '2 de novembro de 2026'
+const VERSAO = '3 de novembro de 2026'
 
 function Pagina({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
@@ -64,6 +64,7 @@ export function Privacidade() {
         <li><strong>Supabase:</strong> banco de dados e login. Guarda sua conta e seus dados, com regras que impedem qualquer outro usuário de acessá-los.</li>
         <li><strong>GitHub Pages:</strong> hospeda o site do app.</li>
         <li><strong>Google (Gmail):</strong> envia os e-mails de confirmação de conta e troca de senha.</li>
+        <li><strong>Cloudflare (Turnstile):</strong> verificação anti-robô ao entrar, criar conta ou trocar senha. Analisa sinais técnicos do navegador, como endereço IP, só para diferenciar pessoas de robôs.</li>
         <li><strong>Serviços de notificação</strong> da Apple, do Google ou do navegador que você usa: entregam os avisos. O conteúdo vai criptografado.</li>
         <li><strong>brapi.dev ou Alpha Vantage</strong> (se você usar cotações): recebem apenas os códigos dos ativos, como PETR4, e a sua chave. Nenhuma quantidade nem valor seu.</li>
         <li>

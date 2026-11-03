@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../db/banco'
+import { apagarBancoDoUsuario, db } from '../db/banco'
 import { apagarTudo, csvDeLinhas, exportarBackup, restaurarBackup } from '../db/backup'
 import { garantirDadosIniciais } from '../db/padroes'
 import { formatarData } from '../core/datas'
 import { apagarPreferencias, salvarPreferencias, usePreferencias } from '../seguranca/preferencias'
 import { biometriaDisponivel, cadastrarBiometria, verificarBiometria } from '../seguranca/bloqueio'
 import { Botao, Campo, Grupo, Interruptor, Linha, Segmentado, Tela } from '../ui/componentes'
-import Dexie from 'dexie'
 import { supabase } from '../nuvem/cliente'
 import { sincronizarAgora, temPendencias, useEstadoSinc } from '../nuvem/estado'
 import { useSessao } from '../conta/sessao'
@@ -23,9 +22,7 @@ const fmtHora = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-d
 async function sairDaConta(): Promise<boolean> {
   const ok = await sincronizarAgora()
   if (!ok && (await temPendencias(db)) && !window.confirm('Algumas alterações deste aparelho ainda não foram para a nuvem e serão perdidas. Sair mesmo assim?')) return false
-  const nome = db.name
-  db.close()
-  await Dexie.delete(nome)
+  await apagarBancoDoUsuario()
   apagarPreferencias()
   await supabase?.auth.signOut()
   window.location.hash = '#/'
@@ -125,9 +122,7 @@ export function ExcluirConta() {
     setExcluindo(true); setErro(null)
     const { error } = await supabase.rpc('excluir_minha_conta')
     if (error) { setErro(`Não foi possível excluir agora (${error.message}). Verifique a internet e tente de novo.`); setExcluindo(false); return }
-    const nome = db.name
-    db.close()
-    await Dexie.delete(nome)
+    await apagarBancoDoUsuario()
     apagarPreferencias()
     await supabase.auth.signOut()
     window.location.hash = '#/'

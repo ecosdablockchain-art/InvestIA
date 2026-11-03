@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../nuvem/cliente'
 import { Botao, Campo, Segmentado } from '../ui/componentes'
 import { enderecoDoApp, traduzirErro } from './sessao'
+import { useCaptcha } from './Captcha'
 
 type Modo = 'entrar' | 'criar' | 'esqueci'
 
@@ -13,6 +14,7 @@ export function TelaConta() {
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
+  const captcha = useCaptcha()
 
   async function enviar() {
     if (!supabase) return
@@ -23,13 +25,14 @@ export function TelaConta() {
     if (modo === 'criar' && !aceite) { setErro('Para criar a conta, aceite os Termos de uso e a Política de privacidade.'); return }
     setEnviando(true)
     try {
+      const captchaToken = await captcha.pegarToken()
       if (modo === 'entrar') {
-        const { error } = await supabase.auth.signInWithPassword({ email: e, password: senha })
+        const { error } = await supabase.auth.signInWithPassword({ email: e, password: senha, options: { captchaToken } })
         if (error) throw error
       } else if (modo === 'criar') {
         const { data, error } = await supabase.auth.signUp({
           email: e, password: senha,
-          options: { emailRedirectTo: enderecoDoApp(), data: { aceite_termos_em: new Date().toISOString(), versao_termos: '2026-11' } },
+          options: { captchaToken, emailRedirectTo: enderecoDoApp(), data: { aceite_termos_em: new Date().toISOString(), versao_termos: '2026-11' } },
         })
         if (error) throw error
         if (!data.session) {
@@ -37,13 +40,14 @@ export function TelaConta() {
           setSenha('')
         }
       } else {
-        const { error } = await supabase.auth.resetPasswordForEmail(e, { redirectTo: enderecoDoApp() })
+        const { error } = await supabase.auth.resetPasswordForEmail(e, { captchaToken, redirectTo: enderecoDoApp() })
         if (error) throw error
         setAviso(`Se existir uma conta com ${e}, você vai receber um link para criar uma nova senha.`)
       }
     } catch (err) {
       setErro(traduzirErro(err instanceof Error ? err.message : String(err)))
     } finally {
+      captcha.renovar()
       setEnviando(false)
     }
   }
@@ -77,6 +81,7 @@ export function TelaConta() {
               <a href="#/privacidade" className="text-marca-600 underline dark:text-marca-100">Política de privacidade</a>.</span>
           </label>
         )}
+        {captcha.elemento}
         {erro && <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-900 dark:bg-red-950 dark:text-red-200">{erro}</p>}
         {aviso && <p role="status" className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100">{aviso}</p>}
         <Botao type="submit" className="w-full" disabled={enviando}>

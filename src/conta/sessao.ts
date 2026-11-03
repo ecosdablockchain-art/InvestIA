@@ -44,6 +44,7 @@ export function enderecoDoApp(): string {
 /** Mensagens do Supabase em português. */
 export function traduzirErro(msg: string): string {
   const m = msg.toLowerCase()
+  if (m.includes('captcha')) return 'A verificação anti-robô não foi concluída. Espere alguns segundos e tente de novo; se continuar, recarregue a página.'
   if (m.includes('invalid login credentials')) return 'E-mail ou senha incorretos.'
   if (m.includes('email not confirmed')) return 'Confirme seu e-mail antes de entrar: abra o link que enviamos.'
   if (m.includes('already registered') || m.includes('already been registered')) return 'Já existe uma conta com este e-mail. Tente entrar ou use "Esqueci a senha".'

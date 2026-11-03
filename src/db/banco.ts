@@ -121,11 +121,20 @@ function marcarAlteracoes(down: DBCore, banco: BancoFinancas): DBCore {
 export let db = new BancoFinancas('financas360-sem-conta')
 
 export function abrirBancoDoUsuario(usuarioId: string): BancoFinancas {
-  if (db.name !== `financas360-${usuarioId}`) {
+  // hasBeenClosed: depois de "Sair", o banco antigo fica fechado de vez; entrar de novo precisa de um novo
+  if (db.name !== `financas360-${usuarioId}` || db.hasBeenClosed()) {
     db.close()
     db = new BancoFinancas(`financas360-${usuarioId}`)
   }
   return db
+}
+
+/** Fecha e apaga a cópia local da conta (ao sair). */
+export async function apagarBancoDoUsuario(): Promise<void> {
+  const nome = db.name
+  db.close()
+  db = new BancoFinancas('financas360-sem-conta')
+  await Dexie.delete(nome)
 }
 
 export type NovoRegistro<T extends Base> = Omit<T, keyof Base>
