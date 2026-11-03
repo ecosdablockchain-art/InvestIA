@@ -312,7 +312,8 @@ export function Ajustes() {
         </div>
       </Grupo>}
 
-      {ajustes && <Grupo titulo="Jogo">
+      {ajustes && <Grupo titulo="Plano e jogo">
+        <Linha icone="🧭" titulo="Refazer as 4 perguntas do plano" href="#/comecar" />
         <Linha icone="🏆" titulo="Mostrar nível, missões e conquistas">
           <Interruptor rotulo="Mostrar nível, missões e conquistas" ligado={ajustes.jogoAtivo} onMudar={(jogoAtivo) => void salvarAjustesConta({ jogoAtivo })} />
         </Linha>

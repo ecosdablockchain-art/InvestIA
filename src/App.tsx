@@ -7,6 +7,10 @@ import { Painel } from './telas/Painel'
 import { Credito } from './telas/credito/Credito'
 import { Patrimonio } from './telas/patrimonio/Patrimonio'
 import { Insights } from './telas/insights/Insights'
+import { BoasVindas } from './telas/BoasVindas'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from './db/banco'
+import { useAjustesConta } from './db/ajustesConta'
 import { Jogo } from './telas/jogo/Jogo'
 import { Mes } from './telas/mes/Mes'
 import { Aviso } from './ui/Aviso'
@@ -34,6 +38,18 @@ export function App() {
   const [desbloqueado, setDesbloqueado] = useState(false)
   const [oculto, setOculto] = useState(false)
   const saiuEm = useRef<number | null>(null)
+
+  // Primeiro acesso (conta sem lançamentos e sem ter visto as boas-vindas): abre o questionário uma vez.
+  const ajustes = useAjustesConta()
+  const qtdLancamentos = useLiveQuery(() => db.lancamentos.count(), [])
+  const levouAoComeco = useRef(false)
+  useEffect(() => {
+    if (!ajustes || qtdLancamentos === undefined || levouAoComeco.current) return
+    if (!ajustes.boasVindasVistas && !ajustes.perfilFinanceiro && qtdLancamentos === 0 && (rota === 'painel' || rota === '')) {
+      levouAoComeco.current = true // uma vez por sessão: "Pular" não volta para cá
+      window.location.hash = '#/comecar'
+    }
+  }, [ajustes, qtdLancamentos, rota])
 
   // O Consultor (IA) saiu do app: apaga a chave do Claude que tenha ficado guardada na conta.
   useEffect(() => {
@@ -79,6 +95,7 @@ export function App() {
     case 'ajustes/contextos': tela = <AjustesContextos />; break
     case 'ajustes/categorias': tela = <AjustesCategorias />; break
     case 'insights': tela = <Insights />; break
+    case 'comecar': tela = <BoasVindas />; break
     case 'consultor': tela = <Insights />; break // link antigo
     case 'jogo': tela = <Jogo />; break
     case 'ajustes/excluir-conta': tela = <ExcluirConta />; break

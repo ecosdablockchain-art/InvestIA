@@ -1,14 +1,14 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type BancoFinancas } from './banco'
-import type { AjustesConta } from './tipos'
+import type { AjustesConta, PerfilFinanceiro } from './tipos'
 
 export const ID_AJUSTES = 'conta'
-export type ValoresAjustes = Pick<AjustesConta, 'perfil' | 'fonteCotacao' | 'chaveCotacao' | 'taxaRotativoMensal'> & { notificacoes: { fatura: boolean; limite: boolean; semanal: boolean }; chaveClaude: string; jogoAtivo: boolean }
-export const AJUSTES_PADRAO: ValoresAjustes = { perfil: 'moderado', fonteCotacao: 'brapi', chaveCotacao: '', taxaRotativoMensal: 0.15, notificacoes: { fatura: true, limite: true, semanal: true }, chaveClaude: '', jogoAtivo: true }
+export type ValoresAjustes = Pick<AjustesConta, 'perfil' | 'fonteCotacao' | 'chaveCotacao' | 'taxaRotativoMensal'> & { notificacoes: { fatura: boolean; limite: boolean; semanal: boolean }; chaveClaude: string; jogoAtivo: boolean; perfilFinanceiro: PerfilFinanceiro | null; boasVindasVistas: boolean }
+export const AJUSTES_PADRAO: ValoresAjustes = { perfil: 'moderado', fonteCotacao: 'brapi', chaveCotacao: '', taxaRotativoMensal: 0.15, notificacoes: { fatura: true, limite: true, semanal: true }, chaveClaude: '', jogoAtivo: true, perfilFinanceiro: null, boasVindasVistas: false }
 
 export async function lerAjustesConta(banco: BancoFinancas = db): Promise<ValoresAjustes> {
   const a = await banco.ajustesConta.get(ID_AJUSTES)
-  return { ...AJUSTES_PADRAO, ...(a ? { perfil: a.perfil, fonteCotacao: a.fonteCotacao, chaveCotacao: a.chaveCotacao, taxaRotativoMensal: a.taxaRotativoMensal, notificacoes: { ...AJUSTES_PADRAO.notificacoes, ...a.notificacoes }, chaveClaude: a.chaveClaude ?? '', jogoAtivo: a.jogoAtivo ?? true } : {}) }
+  return { ...AJUSTES_PADRAO, ...(a ? { perfil: a.perfil, fonteCotacao: a.fonteCotacao, chaveCotacao: a.chaveCotacao, taxaRotativoMensal: a.taxaRotativoMensal, notificacoes: { ...AJUSTES_PADRAO.notificacoes, ...a.notificacoes }, chaveClaude: a.chaveClaude ?? '', jogoAtivo: a.jogoAtivo ?? true, perfilFinanceiro: a.perfilFinanceiro ?? null, boasVindasVistas: a.boasVindasVistas ?? false } : {}) }
 }
 
 export async function salvarAjustesConta(mudancas: Partial<ValoresAjustes>, banco: BancoFinancas = db): Promise<void> {

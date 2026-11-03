@@ -1,8 +1,36 @@
+import { useState } from 'react'
 import { formatarBRL } from '../../core/dinheiro'
-import type { Insight, Passo, Tom } from '../../core/insights'
+import type { Execucao, Insight, Passo, Tom } from '../../core/insights'
+import { db } from '../../db/banco'
+import { definirLimite } from '../../db/repositorio'
+import { apagarMeta, salvarMeta } from '../../db/patrimonio'
+import { mostrarAviso } from '../../ui/Aviso'
 import { CardValor, Cartao, Tela } from '../../ui/componentes'
 import { IconeSeta } from '../../ui/Icones'
-import { useInsights } from './dados'
+import { NOME_META_RESERVA, useInsights } from './dados'
+
+/** Executa a ação sugerida e oferece Desfazer. */
+async function executar(ex: Execucao): Promise<void> {
+  if (ex.tipo === 'limite') {
+    const anterior = (await db.categorias.get(ex.categoriaId))?.limiteMensal ?? null
+    await definirLimite(db, ex.categoriaId, ex.valor)
+    mostrarAviso(`Limite de ${formatarBRL(ex.valor)} aplicado em ${ex.categoria}`, { rotulo: 'Desfazer', executar: () => void definirLimite(db, ex.categoriaId, anterior) })
+  } else {
+    const meta = await salvarMeta(db, { nome: NOME_META_RESERVA, icone: '🛟', valorAlvo: ex.valorAlvo, valorInicial: ex.valorInicial, prazo: ex.prazo, prioridade: 1, concluida: false })
+    mostrarAviso('Meta “Reserva de emergência” criada', { rotulo: 'Desfazer', executar: () => void apagarMeta(db, meta.id) })
+  }
+}
+
+function BotaoExecutar({ ex }: { ex: Execucao }) {
+  const [fazendo, setFazendo] = useState(false)
+  return (
+    <button type="button" disabled={fazendo}
+      onClick={() => { setFazendo(true); void executar(ex).catch((e) => mostrarAviso(e instanceof Error ? e.message : 'Não foi possível agora.')).finally(() => setFazendo(false)) }}
+      className="mt-3 mr-3 inline-flex min-h-10 items-center rounded-xl bg-marca-600 px-3.5 text-sm font-semibold text-white shadow-sm hover:bg-marca-700 active:bg-marca-700 disabled:opacity-60">
+      {fazendo ? 'Aplicando…' : ex.rotulo}
+    </button>
+  )
+}
 
 const ESTILO_TOM: Record<Tom, { rotulo: string; faixa: string; selo: string }> = {
   critico: { rotulo: 'Urgente', faixa: 'bg-red-600', selo: 'bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-200' },
@@ -39,6 +67,7 @@ function EtapaPlano({ p, n, ultimo }: { p: Passo; n: number; ultimo: boolean }) 
         </div>
         {agora && <p className="mt-0.5 text-xs font-semibold tracking-wide text-marca-600 uppercase dark:text-marca-100">Faça agora</p>}
         <p className={`mt-1 text-sm leading-relaxed ${feito ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'}`}>{p.texto}</p>
+        {p.executar && !feito && <BotaoExecutar ex={p.executar} />}
         {p.acao && !feito && <LinkAcao {...p.acao} />}
       </div>
     </li>
@@ -57,6 +86,7 @@ function CartaoInsight({ i }: { i: Insight }) {
         </div>
         <h3 className="mt-2 font-semibold">{i.titulo}</h3>
         <p className="mt-1 text-sm leading-relaxed text-slate-700 dark:text-slate-300">{i.texto}</p>
+        {i.executar && <BotaoExecutar ex={i.executar} />}
         {i.acao && <LinkAcao {...i.acao} />}
       </div>
     </li>

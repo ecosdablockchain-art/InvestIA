@@ -181,6 +181,19 @@ export interface AjustesConta extends Base {
   chaveClaude?: string
   /** Mostrar nível, missões e conquistas. */
   jogoAtivo?: boolean
+  /** Respostas do questionário de boas-vindas (estimativas até haver lançamentos). */
+  perfilFinanceiro?: PerfilFinanceiro | null
+  /** Já viu (respondeu ou pulou) as boas-vindas. */
+  boasVindasVistas?: boolean
+}
+
+export interface PerfilFinanceiro {
+  rendaMensal: Centavos
+  rendaVaria: boolean
+  gastoMensal: Centavos
+  /** Como o gasto foi somado no questionário (moradia, casa, mercado...). */
+  partesGasto?: Record<string, Centavos>
+  respondidoEm: string
 }
 
 export interface CasaMembro extends Base {

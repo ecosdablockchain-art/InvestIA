@@ -111,3 +111,51 @@ describe('insights', () => {
     expect(passo(r, 'dividas')!.estado).toBe('feito') // dívida barata
   })
 })
+
+describe('ações com um toque', () => {
+  it('categoria que subiu: oferece limite pela média, arredondado; some se já houver limite menor', () => {
+    const entrada = (limite: number | null) => base({
+      categorias: [{ id: 'd', nome: 'Delivery', limiteMensal: limite }],
+      comparativo: [{ categoriaId: 'd', esteMes: 90000, mesPassado: 90000, media3: 50333 }],
+    })
+    const ex = gerarInsights(entrada(null)).insights.find((i) => i.id === 'subiu:d')?.executar
+    expect(ex).toEqual({ tipo: 'limite', rotulo: 'Limitar a R$ 510,00 por mês', categoriaId: 'd', categoria: 'Delivery', valor: 51000 })
+    expect(gerarInsights(entrada(45000)).insights.find((i) => i.id === 'subiu:d')?.executar).toBeUndefined()
+    expect(gerarInsights(entrada(80000)).insights.find((i) => i.id === 'subiu:d')?.executar?.tipo).toBe('limite')
+  })
+
+  it('reserva: oferece criar a meta com o valor ideal e prazo pela sobra', () => {
+    const r = gerarInsights(base({ reserva: 1000000 }))
+    const ex = passo(r, 'reserva')!.executar
+    expect(ex).toEqual({ tipo: 'meta-reserva', rotulo: 'Criar meta de reserva (R$ 30.000,00)', valorAlvo: 3000000, valorInicial: 1000000, prazo: '2028-07-28' })
+    expect(passo(gerarInsights(base({ reserva: 1000000, temMetaReserva: true })), 'reserva')!.executar).toBeUndefined()
+  })
+
+  it('com dívida cara e sem mini-reserva: o botão da meta fica na mini-reserva, não duplica', () => {
+    const r = gerarInsights(base({ dividas: [{ id: 'a', nome: 'Empréstimo', saldo: 1000000, jurosMensal: 0.03, parcela: 50000, origem: 'manual' }] }))
+    expect(passo(r, 'mini-reserva')!.executar?.tipo).toBe('meta-reserva')
+    expect(passo(r, 'reserva')!.executar).toBeUndefined()
+  })
+})
+
+describe('estimativas do questionário', () => {
+  it('sem mês completo: usa as respostas e avisa que é estimativa', () => {
+    const r = gerarInsights(base({ meses: tres(0, 0), mesAtual: mes(202611, 50000, 20000), estimativa: { renda: 500000, gasto: 380000, rendaVaria: false } }))
+    expect(r.numeros.estimado).toBe(true)
+    expect(r.numeros.parcial).toBe(false)
+    expect(r.numeros.sobra).toBe(120000)
+    expect(r.insights.find((i) => i.id === 'estimado')?.acao?.href).toBe('#/comecar')
+    expect(r.plano.length).toBeGreaterThan(0)
+  })
+  it('com mês completo lançado: os dados reais substituem as respostas', () => {
+    const r = gerarInsights(base({ estimativa: { renda: 100, gasto: 50, rendaVaria: false } }))
+    expect(r.numeros.estimado).toBe(false)
+    expect(r.numeros.renda).toBe(600000)
+  })
+  it('quem disse que a renda varia: reserva de 12 meses', () => {
+    expect(gerarInsights(base({ estimativa: { renda: 600000, gasto: 500000, rendaVaria: true } })).numeros.reservaAlvoMeses).toBe(12)
+  })
+  it('sem nada: convida para as 4 perguntas', () => {
+    expect(gerarInsights(base({ meses: tres(0, 0) })).insights[0]?.acao?.href).toBe('#/comecar')
+  })
+})

@@ -1,5 +1,5 @@
 import { formatarBRL, type Centavos } from './dinheiro'
-import { nomeCompetencia, type Competencia } from './datas'
+import { dataNaCompetencia, nomeCompetencia, somarMeses, type Competencia, type DataISO } from './datas'
 import { compararExtra, jurosAnual, ordenarAvalanche, simularQuitacao, type DividaResumo } from './dividas'
 import type { ComparativoCategoria, MesHistorico } from './historico'
 import type { Perfil } from './carteira'
@@ -36,16 +36,25 @@ export interface EntradaInsights {
   riscoAcimaDoPerfil: boolean
   temNegocio: boolean
   metas: { nome: string; falta: Centavos; aporteNecessario: Centavos | null; mediaAportes: Centavos; estado: string }[]
+  /** Já existe a meta "Reserva de emergência" (em aberto)? */
+  temMetaReserva?: boolean
+  /** Respostas do questionário de boas-vindas: usadas enquanto não há mês completo lançado. */
+  estimativa?: { renda: Centavos; gasto: Centavos; rendaVaria: boolean } | null
 }
 
 export type Tom = 'critico' | 'atencao' | 'positivo' | 'info'
 export interface Acao { rotulo: string; href: string }
-export interface Insight { id: string; tom: Tom; titulo: string; texto: string; destaque?: string; acao?: Acao }
-export interface Passo { id: string; titulo: string; texto: string; estado: 'feito' | 'agora' | 'depois'; destaque?: string; acao?: Acao }
+/** Ação que o app executa com um toque (com Desfazer). */
+export type Execucao =
+  | { tipo: 'limite'; rotulo: string; categoriaId: string; categoria: string; valor: Centavos }
+  | { tipo: 'meta-reserva'; rotulo: string; valorAlvo: Centavos; valorInicial: Centavos; prazo: DataISO | null }
+export interface Insight { id: string; tom: Tom; titulo: string; texto: string; destaque?: string; acao?: Acao; executar?: Execucao }
+export interface Passo { id: string; titulo: string; texto: string; estado: 'feito' | 'agora' | 'depois'; destaque?: string; acao?: Acao; executar?: Execucao }
 
 export interface Numeros {
   mesesAnalisados: number
   parcial: boolean // só o mês atual, ainda em andamento
+  estimado: boolean // a partir das respostas do questionário, sem lançamentos completos
   renda: Centavos // média mensal
   gasto: Centavos // média mensal
   sobra: Centavos // média mensal
@@ -66,16 +75,19 @@ const meses = (n: number) => `${n} ${n === 1 ? 'mês' : 'meses'}`
 
 export function calcularNumeros(e: EntradaInsights): Numeros {
   const comDados = e.meses.filter((m) => m.entradas > 0 || m.gastos > 0)
-  const parcial = comDados.length === 0 && (e.mesAtual.entradas > 0 || e.mesAtual.gastos > 0)
-  const base = parcial ? [e.mesAtual] : comDados
+  const est = e.estimativa && (e.estimativa.renda > 0 || e.estimativa.gasto > 0) ? e.estimativa : null
+  const estimado = comDados.length === 0 && est !== null
+  const parcial = comDados.length === 0 && !estimado && (e.mesAtual.entradas > 0 || e.mesAtual.gastos > 0)
+  const base = estimado && est ? [{ competencia: e.competencia, entradas: est.renda, gastos: est.gasto, sobra: est.renda - est.gasto }]
+    : parcial ? [e.mesAtual] : comDados
   const renda = Math.round(media(base.map((m) => m.entradas)))
   const gasto = Math.round(media(base.map((m) => m.gastos)))
   const rendas = base.map((m) => m.entradas)
   const desvio = Math.sqrt(media(rendas.map((r) => (r - renda) ** 2)))
-  const rendaVariavel = e.temNegocio || (base.length >= 3 && renda > 0 && desvio / renda > 0.25)
+  const rendaVariavel = e.temNegocio || !!e.estimativa?.rendaVaria || (base.length >= 3 && renda > 0 && desvio / renda > 0.25)
   const reservaAlvoMeses = rendaVariavel ? 12 : 6
   return {
-    mesesAnalisados: base.length, parcial, renda, gasto, sobra: renda - gasto,
+    mesesAnalisados: base.length, parcial, estimado, renda, gasto, sobra: renda - gasto,
     taxaPoupanca: renda > 0 ? (renda - gasto) / renda : null,
     rendaVariavel, reservaAlvoMeses, reservaAlvo: gasto * reservaAlvoMeses,
     mesesDeReserva: gasto > 0 ? e.reserva / gasto : null,
@@ -90,8 +102,8 @@ export function gerarInsights(e: EntradaInsights): ResultadoInsights {
       plano: [],
       insights: [{
         id: 'sem-dados', tom: 'info', titulo: 'Comece lançando suas entradas e gastos',
-        texto: 'Os insights são calculados a partir dos seus lançamentos. Registre o que entra e o que sai por pelo menos um mês para ver quanto guardar, como montar a reserva e o que priorizar.',
-        acao: { rotulo: 'Fazer um lançamento', href: '#/mes/novo' },
+        texto: 'Responda 4 perguntas rápidas (renda, gastos, dívidas e reserva) para receber um plano agora. Depois, os seus lançamentos deixam os números cada vez mais precisos.',
+        acao: { rotulo: 'Responder as 4 perguntas', href: '#/comecar' },
       }],
     }
   }
@@ -101,6 +113,12 @@ export function gerarInsights(e: EntradaInsights): ResultadoInsights {
   const baratas = dividasAtivas.filter((d) => d.jurosMensal < JUROS_CARO)
   const miniReserva = n.gasto // 1 mês de gastos
   const sobra = Math.max(0, n.sobra)
+  const faltaReservaTotal = Math.max(0, n.reservaAlvo - e.reserva)
+  const mesesAteReserva = sobra > 0 ? Math.min(60, Math.ceil(faltaReservaTotal / sobra) + (caras.length ? Math.ceil(caras.reduce((a, d) => a + d.saldo, 0) / sobra) : 0)) : null
+  const metaReserva: Execucao | undefined = !e.temMetaReserva && faltaReservaTotal > 0 && n.reservaAlvo > 0
+    ? { tipo: 'meta-reserva', rotulo: `Criar meta de reserva (${R(n.reservaAlvo)})`, valorAlvo: n.reservaAlvo, valorInicial: e.reserva,
+        prazo: mesesAteReserva ? dataNaCompetencia(somarMeses(e.competencia, mesesAteReserva), 28) : null }
+    : undefined
 
   // ---------- plano ----------
   const plano: Passo[] = []
@@ -134,6 +152,7 @@ export function gerarInsights(e: EntradaInsights): ResultadoInsights {
       texto: `Antes de atacar as dívidas, guarde ${R(miniReserva)} (um mês de gastos) para não precisar de mais crédito num imprevisto. Faltam ${R(falta)}${mesesMini ? `: com a sua sobra, ${meses(mesesMini)}` : ''}.`,
       destaque: R(falta),
       acao: { rotulo: 'Registrar reserva', href: '#/patrimonio' },
+      executar: metaReserva,
     })
   }
 
@@ -172,6 +191,7 @@ export function gerarInsights(e: EntradaInsights): ResultadoInsights {
       texto: `Sua reserva ideal é ${R(n.reservaAlvo)}: ${n.reservaAlvoMeses} × ${R(n.gasto)} de gasto médio, porque ${porque}. Hoje você tem ${R(e.reserva)}${n.mesesDeReserva !== null ? ` (${n.mesesDeReserva.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} meses)` : ''}, faltam ${R(faltaReserva)}.${aporte && quando ? ` Guardando ${R(aporte)} por mês, você chega lá em ${quando > 120 ? 'mais de 10 anos' : meses(quando)}.` : ''} Deixe em renda fixa de baixo risco com resgate no mesmo dia (por exemplo, Tesouro Selic ou CDB de liquidez diária).`,
       destaque: R(faltaReserva),
       acao: { rotulo: 'Atualizar reserva', href: '#/patrimonio' },
+      executar: caras.length && e.reserva < miniReserva ? undefined : metaReserva,
     })
   } else {
     plano.push({
@@ -196,6 +216,9 @@ export function gerarInsights(e: EntradaInsights): ResultadoInsights {
   const insights: Insight[] = []
   const nomeCat = (id: string | null) => (id && e.categorias.find((c) => c.id === id)?.nome) || 'Sem categoria'
 
+  if (n.estimado) {
+    insights.push({ id: 'estimado', tom: 'info', titulo: 'Plano feito com as suas estimativas', texto: 'Os números vêm das respostas do questionário. Lance entradas e gastos por um mês completo e o plano passa a usar os valores reais.', acao: { rotulo: 'Revisar respostas', href: '#/comecar' } })
+  }
   if (n.parcial) {
     insights.push({ id: 'parcial', tom: 'info', titulo: 'Análise do mês em andamento', texto: 'Por enquanto só há lançamentos deste mês, então os números ainda são parciais. Os insights ficam mais certeiros depois do primeiro mês completo.' })
   }
@@ -212,12 +235,21 @@ export function gerarInsights(e: EntradaInsights): ResultadoInsights {
     .filter((c) => c.media3 !== null && c.media3 > 0 && c.esteMes > c.media3 * 1.25 && c.esteMes - c.media3 >= 10000)
     .sort((a, b) => (b.esteMes - (b.media3 ?? 0)) - (a.esteMes - (a.media3 ?? 0)))
     .slice(0, 3)
+  const limiteDe = (id: string | null) => e.categorias.find((x) => x.id === id)?.limiteMensal ?? null
+  const ofertaLimite = (id: string | null, media: Centavos): Execucao | undefined => {
+    if (!id) return undefined
+    const valor = arredondar(media)
+    const atual = limiteDe(id)
+    if (atual !== null && atual <= valor) return undefined
+    return { tipo: 'limite', rotulo: `Limitar a ${R(valor)} por mês`, categoriaId: id, categoria: nomeCat(id), valor }
+  }
   for (const c of subiram) {
     const dif = c.esteMes - (c.media3 ?? 0)
     insights.push({
       id: `subiu:${c.categoriaId}`, tom: 'atencao', titulo: `${nomeCat(c.categoriaId)} subiu ${pct(dif / (c.media3 ?? 1))}`,
       texto: `Em ${ultimo ? nomeCompetencia(ultimo) : 'último mês'} foram ${R(c.esteMes)}, contra ${R(c.media3 ?? 0)} na média dos 3 meses anteriores. Voltar à média libera ${R(dif)} por mês.`,
-      destaque: `+${R(dif)}`, acao: { rotulo: 'Definir limite', href: '#/mes/limites' },
+      destaque: `+${R(dif)}`, acao: { rotulo: 'Ver limites', href: '#/mes/limites' },
+      executar: ofertaLimite(c.categoriaId, c.media3 ?? 0),
     })
   }
 
@@ -229,7 +261,8 @@ export function gerarInsights(e: EntradaInsights): ResultadoInsights {
     insights.push({
       id: 'sem-limite', tom: 'info', titulo: `Coloque um limite em ${nomeCat(semLimite.categoriaId)}`,
       texto: `É um dos seus maiores gastos (média de ${R(semLimite.media3 ?? 0)} por mês) e ainda não tem limite. Com um limite, o app avisa antes de passar.`,
-      acao: { rotulo: 'Definir limite', href: '#/mes/limites' },
+      acao: { rotulo: 'Ver limites', href: '#/mes/limites' },
+      executar: ofertaLimite(semLimite.categoriaId, semLimite.media3 ?? 0),
     })
   }
 

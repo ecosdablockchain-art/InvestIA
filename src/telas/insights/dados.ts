@@ -7,10 +7,14 @@ import { gerarInsights, type ResultadoInsights } from '../../core/insights'
 import { gastosPorCategoria, type Visao } from '../../core/orcamento'
 import { totalRecorrente } from '../../core/recorrencias'
 import { usePatrimonio } from '../patrimonio/dados'
+import { useAjustesConta } from '../../db/ajustesConta'
+
+export const NOME_META_RESERVA = 'Reserva de emergência'
 
 /** Insights e plano de ação, recalculados ao vivo a cada lançamento. */
 export function useInsights(): ResultadoInsights | null {
   const pat = usePatrimonio()
+  const ajustes = useAjustesConta()
   const comp = pat?.competencia ?? 0
   const dados = useLiveQuery(async () => {
     if (!comp) return null
@@ -21,7 +25,8 @@ export function useInsights(): ResultadoInsights | null {
     ])
     return { lancamentos, categorias, contextos, recorrencias, cartoes, faturas, parcelados }
   }, [comp])
-  if (!pat || !dados) return null
+  if (!pat || !dados || !ajustes) return null
+  const pf = ajustes.perfilFinanceiro
 
   const pessoal = dados.contextos.find((c) => c.tipo === 'pessoal')?.id
   const visao: Visao = pessoal ? { tipo: 'contexto', id: pessoal } : { tipo: 'tudo' }
@@ -38,6 +43,9 @@ export function useInsights(): ResultadoInsights | null {
       faturasAbertas += compor(c, x, dados.lancamentos, dados.parcelados, f?.valorInformado ?? null).valor
     }
   }
+  // a meta "Reserva de emergência" (criada pelos Insights) também conta como reserva
+  const metaReserva = pat.metas.find(({ meta }) => !meta.concluida && meta.nome === NOME_META_RESERVA)
+  const reserva = Math.max(pat.reserva, metaReserva?.s.atual ?? 0)
   const negocios = dados.contextos.filter((c) => c.tipo === 'negocio' && !c.arquivado).map((c) => c.id)
 
   return gerarInsights({
@@ -51,7 +59,9 @@ export function useInsights(): ResultadoInsights | null {
     dividas: pat.dividas.filter((d) => d.saldo > 0).map((d) => ({ id: d.id, nome: d.nome, saldo: d.saldo, jurosMensal: d.jurosMensal, parcela: d.parcela, origem: d.origem })),
     faturasAbertas,
     parcelasProximoMes: dados.parcelados.reduce((a, p) => a + (parcelaNoMes(p, somarMeses(comp, 1))?.valor ?? 0), 0),
-    reserva: pat.reserva,
+    reserva,
+    temMetaReserva: !!metaReserva,
+    estimativa: pf ? { renda: pf.rendaMensal, gasto: pf.gastoMensal, rendaVaria: pf.rendaVaria } : null,
     investido: pat.totalInvestido,
     perfil: pat.perfil,
     riscoAcimaDoPerfil: pat.risco?.acimaDoPerfil ?? false,
