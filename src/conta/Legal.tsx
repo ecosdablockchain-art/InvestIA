@@ -36,7 +36,7 @@ export function Privacidade() {
       <ul>
         <li><strong>Conta:</strong> seu e-mail e sua senha. A senha é guardada pelo serviço de login apenas em forma criptografada; ninguém consegue lê-la.</li>
         <li><strong>Dados financeiros que você digita:</strong> lançamentos, categorias, contas, cartões e faturas, dívidas, investimentos, patrimônio, metas e preferências.</li>
-        <li><strong>Chaves de serviços que você cadastra</strong> (cotações e Claude): ficam na sua conta para valer em todos os seus aparelhos. Não entram no backup exportado.</li>
+        <li><strong>Chave do serviço de cotações</strong>, se você cadastrar: fica na sua conta para valer em todos os seus aparelhos. Não entra no backup exportado.</li>
         <li><strong>Notificações, se você ativar:</strong> o endereço técnico de entrega do seu aparelho e a agenda de avisos (por exemplo, “Fatura vence em 3 dias”, com o valor).</li>
         <li><strong>Dados técnicos de acesso</strong> (como endereço IP e data e hora), registrados automaticamente pelos provedores de hospedagem.</li>
       </ul>
@@ -54,7 +54,7 @@ export function Privacidade() {
       <h2>Bases legais</h2>
       <p>
         Execução do contrato que você aceita ao criar a conta (art. 7º, V, da LGPD), cumprimento de obrigação legal (art. 7º, II)
-        e, para os recursos opcionais (Consultor, cotações e notificações), o seu consentimento ao ativá-los (art. 7º, I),
+        e, para os recursos opcionais (cotações e notificações), o seu consentimento ao ativá-los (art. 7º, I),
         que pode ser retirado a qualquer momento desligando o recurso.
       </p>
 
@@ -67,11 +67,6 @@ export function Privacidade() {
         <li><strong>Cloudflare (Turnstile):</strong> verificação anti-robô ao entrar, criar conta ou trocar senha. Analisa sinais técnicos do navegador, como endereço IP, só para diferenciar pessoas de robôs.</li>
         <li><strong>Serviços de notificação</strong> da Apple, do Google ou do navegador que você usa: entregam os avisos. O conteúdo vai criptografado.</li>
         <li><strong>brapi.dev ou Alpha Vantage</strong> (se você usar cotações): recebem apenas os códigos dos ativos, como PETR4, e a sua chave. Nenhuma quantidade nem valor seu.</li>
-        <li>
-          <strong>Anthropic</strong> (se você usar o Consultor, com a sua própria chave): recebe um resumo com totais por mês e por categoria,
-          dívidas, investimentos e metas, além das perguntas que você fizer. O resumo não leva descrições de lançamentos, nomes de
-          estabelecimentos, bancos ou números de conta. Esse uso segue também os termos da Anthropic na sua conta.
-        </li>
       </ul>
       <p>
         Alguns desses provedores podem processar dados fora do Brasil. Nesses casos, a transferência ocorre para a execução do
@@ -143,8 +138,9 @@ export function Termos() {
       <h2>Recursos que dependem de outros serviços</h2>
       <ul>
         <li>
-          <strong>Consultor (IA Claude):</strong> as respostas são geradas por inteligência artificial e podem conter erros.
-          Use-as como ponto de partida, não como decisão final. O uso é cobrado pela Anthropic na conta da chave que você cadastrar.
+          <strong>Insights:</strong> as sugestões (reserva, dívidas, gastos, metas) são calculadas automaticamente no seu aparelho
+          a partir dos dados que você lança, com regras gerais de educação financeira. São estimativas e não consideram a sua
+          situação completa; use-as como ponto de partida.
         </li>
         <li>
           <strong>Cotações:</strong> vêm da brapi.dev ou da Alpha Vantage, podem ter atraso ou falhas e não servem como referência

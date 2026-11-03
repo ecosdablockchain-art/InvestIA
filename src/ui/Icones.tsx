@@ -33,3 +33,6 @@ export const IconeSeta = (p: P) => (
 export const IconeMais = (p: P) => (
   <svg {...base(p)}><path d="M12 5v14M5 12h14" /></svg>
 )
+export const IconeInsights = (p: P) => (
+  <svg {...base(p)}><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z" /></svg>
+)

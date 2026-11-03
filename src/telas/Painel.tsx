@@ -110,7 +110,6 @@ export function Painel() {
       subtitulo={nomeCompetencia(competencia)}
       acao={
         <div className="flex gap-2">
-        <a href="#/consultor" aria-label="Consultor com IA" className="grid h-11 w-11 place-items-center rounded-full bg-white text-xl shadow-sm ring-1 ring-slate-200 dark:bg-superficie-escuro dark:ring-borda-escuro">💬</a>
         <a href="#/ajustes" aria-label="Ajustes" className="grid h-11 w-11 place-items-center rounded-full bg-white text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-superficie-escuro dark:text-slate-200 dark:ring-borda-escuro">
           <IconeAjustes width={22} height={22} />
         </a>

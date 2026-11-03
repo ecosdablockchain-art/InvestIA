@@ -1,11 +1,12 @@
 import type { ComponentType, SVGProps } from 'react'
 import type { Aba } from '../rotas'
-import { IconeCredito, IconeMais, IconeMes, IconePainel, IconePatrimonio } from './Icones'
+import { IconeCredito, IconeInsights, IconeMais, IconeMes, IconePainel, IconePatrimonio } from './Icones'
 
 const ABAS: { id: Aba; rotulo: string; Icone: ComponentType<SVGProps<SVGSVGElement>> }[] = [
   { id: 'painel', rotulo: 'Painel', Icone: IconePainel },
   { id: 'mes', rotulo: 'Mês', Icone: IconeMes },
   { id: 'lancar', rotulo: 'Lançar', Icone: IconeMais },
+  { id: 'insights', rotulo: 'Insights', Icone: IconeInsights },
   { id: 'credito', rotulo: 'Crédito', Icone: IconeCredito },
   { id: 'patrimonio', rotulo: 'Patrimônio', Icone: IconePatrimonio },
 ]

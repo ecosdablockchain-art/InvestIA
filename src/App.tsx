@@ -6,12 +6,13 @@ import { TabBar } from './ui/TabBar'
 import { Painel } from './telas/Painel'
 import { Credito } from './telas/credito/Credito'
 import { Patrimonio } from './telas/patrimonio/Patrimonio'
-import { Consultor } from './telas/consultor/Consultor'
+import { Insights } from './telas/insights/Insights'
 import { Jogo } from './telas/jogo/Jogo'
 import { Mes } from './telas/mes/Mes'
 import { Aviso } from './ui/Aviso'
 import { Ajustes, ExcluirConta, Instalar } from './telas/Ajustes'
 import { AjustesCategorias, AjustesContextos } from './telas/AjustesListas'
+import { lerAjustesConta, salvarAjustesConta } from './db/ajustesConta'
 
 /** Tempo fora do app antes de pedir Face ID de novo. */
 const TOLERANCIA_MS = 30_000
@@ -34,6 +35,11 @@ export function App() {
   const [oculto, setOculto] = useState(false)
   const saiuEm = useRef<number | null>(null)
 
+  // O Consultor (IA) saiu do app: apaga a chave do Claude que tenha ficado guardada na conta.
+  useEffect(() => {
+    void lerAjustesConta().then((a) => { if (a.chaveClaude) void salvarAjustesConta({ chaveClaude: '' }) }).catch(() => {})
+  }, [])
+
   useEffect(() => {
     if (!bloqueioLigado) return
     const aoMudar = () => {
@@ -55,7 +61,7 @@ export function App() {
   }
 
   const [secao] = rota.split('/')
-  const abas: Aba[] = ['painel', 'mes', 'credito', 'patrimonio']
+  const abas: Aba[] = ['painel', 'mes', 'insights', 'credito', 'patrimonio']
   const aba = abas.includes(secao as Aba) ? (secao as Aba) : secao === 'ajustes' ? 'painel' : null
 
   let tela
@@ -72,7 +78,8 @@ export function App() {
     case 'ajustes': tela = <Ajustes />; break
     case 'ajustes/contextos': tela = <AjustesContextos />; break
     case 'ajustes/categorias': tela = <AjustesCategorias />; break
-    case 'consultor': tela = <Consultor />; break
+    case 'insights': tela = <Insights />; break
+    case 'consultor': tela = <Insights />; break // link antigo
     case 'jogo': tela = <Jogo />; break
     case 'ajustes/excluir-conta': tela = <ExcluirConta />; break
     case 'ajustes/instalar': tela = <Instalar />; break

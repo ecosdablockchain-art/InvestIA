@@ -87,7 +87,7 @@ export function Jogo() {
           ))}
         </ul>
       </Cartao>
-      <p className="px-1 text-xs text-slate-500 dark:text-slate-400">Para esconder o nível e as missões, vá em Ajustes › Consultor e jogo.</p>
+      <p className="px-1 text-xs text-slate-500 dark:text-slate-400">Para esconder o nível e as missões, vá em Ajustes › Jogo.</p>
     </Tela>
   )
 }

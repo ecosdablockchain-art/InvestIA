@@ -177,7 +177,7 @@ export interface AjustesConta extends Base {
   chaveCotacao: string
   taxaRotativoMensal: number
   notificacoes?: { fatura: boolean; limite: boolean; semanal: boolean }
-  /** Chave da API do Claude (Consultor). */
+  /** Legado: chave do antigo Consultor (IA). O app apaga ao abrir. */
   chaveClaude?: string
   /** Mostrar nível, missões e conquistas. */
   jogoAtivo?: boolean

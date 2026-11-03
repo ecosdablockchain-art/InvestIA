@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 
-export type Aba = 'painel' | 'mes' | 'lancar' | 'credito' | 'patrimonio'
+export type Aba = 'painel' | 'mes' | 'lancar' | 'insights' | 'credito' | 'patrimonio'
 
 function lerRota(): string {
   const h = window.location.hash.replace(/^#\/?/, '')

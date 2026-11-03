@@ -159,9 +159,7 @@ export function Ajustes() {
   const [textoApagar, setTextoApagar] = useState('')
   const ajustes = useAjustesConta()
   const [chave, setChave] = useState<string | null>(null)
-  const [chaveClaude, setChaveClaude] = useState<string | null>(null)
   const [testeChave, setTesteChave] = useState<{ tipo: 'ok' | 'erro' | 'testando'; texto: string } | null>(null)
-  const [claudeSalva, setClaudeSalva] = useState(false)
   const [taxa, setTaxa] = useState<string | null>(null)
   const chaveMostrada = chave ?? ajustes?.chaveCotacao ?? ''
   const taxaMostrada = taxa ?? (ajustes ? (ajustes.taxaRotativoMensal * 100).toLocaleString('pt-BR') : '')
@@ -314,16 +312,7 @@ export function Ajustes() {
         </div>
       </Grupo>}
 
-      {ajustes && <Grupo titulo="Consultor e jogo" rodape="O Consultor usa a IA Claude com a sua chave (crie em console.anthropic.com; o uso é cobrado pela Anthropic na sua conta). A chave fica na sua conta e vale em todos os aparelhos.">
-        <div className="p-3">
-          <Campo rotulo="Chave da API do Claude" type="password" autoComplete="off" placeholder="sk-ant-…" value={chaveClaude ?? ajustes.chaveClaude}
-            onChange={(e) => { setChaveClaude(e.target.value); setClaudeSalva(false) }} />
-          <Botao className="mt-3 w-full" variante="secundario" onClick={() => {
-            void salvarAjustesConta({ chaveClaude: (chaveClaude ?? ajustes.chaveClaude).trim() }).then(() => { setChaveClaude(null); setClaudeSalva(true) })
-          }}>Salvar chave</Botao>
-          {claudeSalva && <p role="status" className="mt-2 text-sm">✅ Chave do Claude salva na sua conta.</p>}
-        </div>
-        <Linha icone="💬" titulo="Abrir o Consultor" href="#/consultor" />
+      {ajustes && <Grupo titulo="Jogo">
         <Linha icone="🏆" titulo="Mostrar nível, missões e conquistas">
           <Interruptor rotulo="Mostrar nível, missões e conquistas" ligado={ajustes.jogoAtivo} onMudar={(jogoAtivo) => void salvarAjustesConta({ jogoAtivo })} />
         </Linha>
