@@ -1,0 +1,56 @@
+name: Backup do banco
+
+# Toda segunda às 03:17 (Brasília) e quando você clicar em "Run workflow".
+# Exporta os dados do Supabase, criptografa com a sua senha (BACKUP_SENHA) e guarda por 90 dias.
+# O repositório é público: o arquivo só sai daqui criptografado.
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_SENHA: ${{ secrets.BACKUP_SENHA }}
+    steps:
+      - name: Conferir os segredos
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ] || [ -z "$BACKUP_SENHA" ]; then
+            echo "::error::Cadastre os segredos SUPABASE_DB_URL e BACKUP_SENHA em Settings › Secrets and variables › Actions (veja supabase/BACKUP.md)."
+            exit 1
+          fi
+          if [ "${#BACKUP_SENHA}" -lt 16 ]; then
+            echo "::error::BACKUP_SENHA precisa ter pelo menos 16 caracteres."
+            exit 1
+          fi
+          echo "DATA=$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
+
+      - name: Exportar e criptografar
+        run: |
+          set -euo pipefail
+          # pg_dump 17 (compatível com o Postgres do Supabase); só os dados do app e as contas de login
+          docker run --rm --network host -e PGURL="$SUPABASE_DB_URL" postgres:17 \
+            sh -c 'pg_dump "$PGURL" --data-only --no-owner --no-privileges --table="public.*" --table=auth.users --table=auth.identities' \
+            | gzip -9 > dados.sql.gz
+          if [ "$(stat -c%s dados.sql.gz)" -lt 200 ]; then echo "::error::A exportação veio vazia."; exit 1; fi
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 --symmetric --cipher-algo AES256 \
+            -o "backup-$DATA.sql.gz.gpg" dados.sql.gz <<< "$BACKUP_SENHA"
+          shred -u dados.sql.gz
+          ls -la backup-*.gpg
+
+      - name: Guardar por 90 dias
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ env.DATA }}
+          path: backup-*.sql.gz.gpg
+          retention-days: 90
+          if-no-files-found: error
